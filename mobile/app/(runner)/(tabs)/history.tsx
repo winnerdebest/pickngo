@@ -66,13 +66,17 @@ export default function RunnerHistoryScreen() {
       <View
         style={[
           styles.earningsCard,
-          { backgroundColor: isDark ? colors.cardElevated : colors.charcoal },
+          {
+            backgroundColor: isDark ? colors.cardElevated : colors.white,
+            borderColor: colors.border,
+            borderWidth: 1,
+          },
         ]}
       >
         <View style={styles.statBox}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
             <Icon name="wallet" size={16} color={colors.coral} />
-            <Text style={[styles.statLabel, { color: colors.textMuted }]}>Total Earned</Text>
+            <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Total Earned</Text>
           </View>
           <Text style={[styles.statValue, { color: colors.coral }]}>
             {formatNaira(totalEarnings)}
@@ -82,7 +86,7 @@ export default function RunnerHistoryScreen() {
         <View style={styles.statBox}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
             <Icon name="check-circle" size={16} color={colors.success} />
-            <Text style={[styles.statLabel, { color: colors.textMuted }]}>Completed</Text>
+            <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Completed</Text>
           </View>
           <Text style={[styles.statValue, { color: colors.textPrimary }]}>
             {completedTasks.length}

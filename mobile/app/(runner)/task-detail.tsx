@@ -106,10 +106,14 @@ export default function RunnerTaskDetailScreen() {
         <View
           style={[
             styles.earningsCard,
-            { backgroundColor: isDark ? colors.cardElevated : colors.charcoal },
+            {
+              backgroundColor: isDark ? colors.cardElevated : colors.white,
+              borderColor: colors.border,
+              borderWidth: 1,
+            },
           ]}
         >
-          <Text style={[styles.earningsLabel, { color: colors.textMuted }]}>
+          <Text style={[styles.earningsLabel, { color: colors.textSecondary }]}>
             Your Payout (Runner Fee)
           </Text>
           <Text style={[styles.earningsValue, { color: colors.coral }]}>

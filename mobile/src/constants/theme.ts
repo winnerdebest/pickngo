@@ -18,11 +18,16 @@ export const darkPalette = {
   coralMuted: 'rgba(255, 87, 51, 0.18)',
   coralGlow: 'rgba(255, 87, 51, 0.35)',
 
-  // Surfaces & Backgrounds
+  // Neutrals & Surfaces
+  white: '#FFFFFF',
+  black: '#000000',
   background: '#121212',
   card: '#1C1C20',
+  cardBackground: '#1C1C20',
   cardSubtle: '#222228',
   cardElevated: '#282830',
+  surfaceSubtle: '#222228',
+  surfaceDark: '#16161A',
   border: '#2C2C34',
   borderDark: '#383842',
 
@@ -30,6 +35,7 @@ export const darkPalette = {
   textPrimary: '#FFFFFF',
   textSecondary: '#A1A1AA',
   textMuted: '#71717A',
+  textLight: '#F8FAFC',
   textInverse: '#121212',
   textWhite: '#FFFFFF',
 
@@ -76,11 +82,16 @@ export const lightPalette = {
   coralMuted: 'rgba(255, 87, 51, 0.12)',
   coralGlow: 'rgba(255, 87, 51, 0.25)',
 
-  // Surfaces & Backgrounds
+  // Neutrals & Surfaces
+  white: '#FFFFFF',
+  black: '#000000',
   background: '#F8F9FA',
   card: '#FFFFFF',
+  cardBackground: '#FFFFFF',
   cardSubtle: '#F1F5F9',
   cardElevated: '#FFFFFF',
+  surfaceSubtle: '#F1F5F9',
+  surfaceDark: '#E2E8F0',
   border: '#E2E8F0',
   borderDark: '#CBD5E1',
 
@@ -88,6 +99,7 @@ export const lightPalette = {
   textPrimary: '#121212',
   textSecondary: '#64748B',
   textMuted: '#94A3B8',
+  textLight: '#121212',
   textInverse: '#FFFFFF',
   textWhite: '#FFFFFF',
 

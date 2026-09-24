@@ -115,13 +115,22 @@ export default function CustomerHomeScreen() {
         </View>
 
         {/* Hero Banner: Post a Task */}
-        <View style={[styles.heroCard, { backgroundColor: isDark ? colors.card : colors.charcoal }]}>
+        <View
+          style={[
+            styles.heroCard,
+            {
+              backgroundColor: isDark ? colors.card : colors.white,
+              borderColor: colors.border,
+              borderWidth: 1,
+            },
+          ]}
+        >
           <View style={styles.heroContent}>
             <View style={styles.heroHeader}>
-              <Text style={styles.heroTitle}>Need something done fast?</Text>
+              <Text style={[styles.heroTitle, { color: colors.textPrimary }]}>Need something done fast?</Text>
               <Icon name="flash" size={22} color={colors.coral} />
             </View>
-            <Text style={styles.heroDesc}>
+            <Text style={[styles.heroDesc, { color: colors.textSecondary }]}>
               Groceries, supermarket runs, food pickup, or parcel deliveries right to your door.
             </Text>
             <Button

@@ -91,10 +91,14 @@ export default function RunnerActiveTaskScreen() {
         <View
           style={[
             styles.topEarnings,
-            { backgroundColor: isDark ? colors.cardElevated : colors.charcoal },
+            {
+              backgroundColor: isDark ? colors.cardElevated : colors.white,
+              borderColor: colors.border,
+              borderWidth: 1,
+            },
           ]}
         >
-          <Text style={[styles.topEarningsLabel, { color: colors.textMuted }]}>
+          <Text style={[styles.topEarningsLabel, { color: colors.textSecondary }]}>
             Your Earnings
           </Text>
           <Text style={[styles.topEarningsAmount, { color: colors.coral }]}>

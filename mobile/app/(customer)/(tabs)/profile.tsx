@@ -167,7 +167,11 @@ export default function CustomerProfileScreen() {
         <View
           style={[
             styles.switchCard,
-            { backgroundColor: isDark ? colors.cardElevated : colors.charcoal },
+            {
+              backgroundColor: isDark ? colors.cardElevated : colors.white,
+              borderColor: colors.border,
+              borderWidth: 1,
+            },
           ]}
         >
           <View style={styles.switchHeader}>
@@ -175,8 +179,8 @@ export default function CustomerProfileScreen() {
               <Icon name="bike" size={24} color={colors.coral} />
             </View>
             <View style={styles.switchTextWrapper}>
-              <Text style={styles.switchTitle}>Become a Runner</Text>
-              <Text style={styles.switchSub}>
+              <Text style={[styles.switchTitle, { color: colors.textPrimary }]}>Become a Runner</Text>
+              <Text style={[styles.switchSub, { color: colors.textSecondary }]}>
                 Accept errands, deliver items on your bike, and earn money.
               </Text>
             </View>

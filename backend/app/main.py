@@ -1,5 +1,5 @@
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, Depends
+from fastapi import FastAPI, Depends, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 from sqlalchemy.orm import Session
@@ -13,6 +13,7 @@ from app.routers import (
     payments_router,
 )
 from app.admin import setup_admin
+from app.ws import manager
 
 
 @asynccontextmanager
@@ -82,4 +83,45 @@ def health_check(db: Session = Depends(get_db)):
         "database": db_status,
         "environment": settings.ENVIRONMENT,
         "version": settings.VERSION,
+        "ws_connections": manager.get_active_connections_count(),
     }
+
+
+# --- WebSocket Endpoints ---
+
+@app.websocket("/ws/tasks/{task_id}")
+async def websocket_task_tracker(websocket: WebSocket, task_id: str):
+    """
+    WebSocket endpoint for real-time task status updates.
+    Mobile clients connect here to receive instant status/payment changes
+    instead of polling the REST API.
+
+    Connect: ws://host/ws/tasks/{task_id}
+    Messages received (JSON):
+        {"type": "task_update", "task": { ...full task object... }}
+    """
+    await manager.connect(task_id, websocket)
+    try:
+        while True:
+            # Keep connection alive; client can send pings or we just wait
+            await websocket.receive_text()
+    except WebSocketDisconnect:
+        manager.disconnect(task_id, websocket)
+
+
+@app.websocket("/ws/available-tasks")
+async def websocket_available_tasks(websocket: WebSocket):
+    """
+    WebSocket endpoint for runners to receive real-time notifications
+    when new tasks become FUNDED and available for acceptance.
+
+    Connect: ws://host/ws/available-tasks
+    Messages received (JSON):
+        {"type": "new_task_available", "task": { ...full task object... }}
+    """
+    await manager.connect("available-tasks", websocket)
+    try:
+        while True:
+            await websocket.receive_text()
+    except WebSocketDisconnect:
+        manager.disconnect("available-tasks", websocket)

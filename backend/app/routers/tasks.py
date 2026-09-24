@@ -1,3 +1,4 @@
+import asyncio
 from typing import List, Optional
 from uuid import UUID
 from decimal import Decimal
@@ -25,8 +26,53 @@ from app.services.payment import (
     refund_task_funds,
     PaymentGatewayStub,
 )
+from app.ws import manager
 
 router = APIRouter(prefix="/tasks", tags=["Tasks"])
+
+
+def _task_to_ws_dict(task: Task) -> dict:
+    """Convert a Task ORM object to a JSON-serializable dict for WebSocket broadcast."""
+    return {
+        "id": str(task.id),
+        "type": task.type.value if task.type else None,
+        "status": task.status.value if task.status else None,
+        "customer_id": str(task.customer_id) if task.customer_id else None,
+        "runner_id": str(task.runner_id) if task.runner_id else None,
+        "description": task.description,
+        "pickup_address": task.pickup_address,
+        "delivery_address": task.delivery_address,
+        "estimated_goods_cost": str(task.estimated_goods_cost),
+        "service_fee": str(task.service_fee),
+        "total_amount": str(task.total_amount),
+        "payment_status": task.payment_status.value if task.payment_status else None,
+        "customer_rating": task.customer_rating,
+        "customer_review": task.customer_review,
+        "dispute_reason": task.dispute_reason,
+        "created_at": task.created_at.isoformat() if task.created_at else None,
+        "updated_at": task.updated_at.isoformat() if task.updated_at else None,
+    }
+
+
+def _broadcast_task(task: Task):
+    """Fire-and-forget broadcast of task update to WebSocket subscribers."""
+    task_data = _task_to_ws_dict(task)
+    task_id = str(task.id)
+    try:
+        loop = asyncio.get_running_loop()
+        loop.create_task(manager.broadcast_task_update(task_id, task_data))
+    except RuntimeError:
+        pass  # No running event loop (e.g. during tests) — skip broadcast
+
+
+def _broadcast_new_available(task: Task):
+    """Fire-and-forget broadcast to runners that a new task is available."""
+    task_data = _task_to_ws_dict(task)
+    try:
+        loop = asyncio.get_running_loop()
+        loop.create_task(manager.broadcast_new_task_available(task_data))
+    except RuntimeError:
+        pass
 
 
 @router.post("/", response_model=TaskResponse, status_code=status.HTTP_201_CREATED)
@@ -137,6 +183,11 @@ def fund_task_endpoint(
     ref = payload.payment_reference if payload and payload.payment_reference else init_res["reference"]
     task = fund_task(db, task, reference=ref)
 
+    # Broadcast: task is now funded (status update to task watchers)
+    _broadcast_task(task)
+    # Broadcast: new task available for runners
+    _broadcast_new_available(task)
+
     return FundTaskResponse(
         task_id=task.id,
         payment_status=task.payment_status,
@@ -184,6 +235,10 @@ def accept_task_endpoint(
     db.add(task)
     db.commit()
     db.refresh(task)
+
+    # Broadcast: task accepted — customer sees runner assigned
+    _broadcast_task(task)
+
     return task
 
 
@@ -222,6 +277,10 @@ def update_task_status(
     db.add(task)
     db.commit()
     db.refresh(task)
+
+    # Broadcast: real-time status update to customer watching this task
+    _broadcast_task(task)
+
     return task
 
 
@@ -252,6 +311,9 @@ def confirm_delivery_endpoint(task_id: UUID, db: Session = Depends(get_db)):
     # Recalculate runner trust tier & stats
     if task.runner:
         recalculate_runner_trust(db, task.runner)
+
+    # Broadcast: task completed + funds released
+    _broadcast_task(task)
 
     return task
 
@@ -289,6 +351,9 @@ def rate_task_runner(
     if task.runner:
         recalculate_runner_trust(db, task.runner)
 
+    # Broadcast: rating submitted
+    _broadcast_task(task)
+
     return task
 
 
@@ -320,6 +385,10 @@ def dispute_task_endpoint(
     db.add(task)
     db.commit()
     db.refresh(task)
+
+    # Broadcast: dispute raised
+    _broadcast_task(task)
+
     return task
 
 
@@ -354,5 +423,8 @@ def cancel_task_endpoint(
         db.add(task)
         db.commit()
         db.refresh(task)
+
+    # Broadcast: task cancelled
+    _broadcast_task(task)
 
     return task

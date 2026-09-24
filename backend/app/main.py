@@ -1,8 +1,10 @@
 from contextlib import asynccontextmanager
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import text
+from sqlalchemy.orm import Session
 from app.config import settings
-from app.database import engine, Base
+from app.database import engine, Base, get_db
 import app.models  # Ensure all models are registered with Base.metadata
 from app.routers import (
     customers_router,
@@ -53,6 +55,7 @@ admin = setup_admin(app, engine)
 
 @app.get("/", tags=["Health"])
 def root():
+    """Root endpoint providing service metadata and portal links."""
     return {
         "app": settings.PROJECT_NAME,
         "version": settings.VERSION,
@@ -63,5 +66,20 @@ def root():
 
 
 @app.get("/health", tags=["Health"])
-def health_check():
-    return {"status": "ok", "environment": settings.ENVIRONMENT}
+def health_check(db: Session = Depends(get_db)):
+    """
+    Health check endpoint for Render, load balancers, and uptime monitors.
+    Verifies service status and live database connectivity.
+    """
+    db_status = "connected"
+    try:
+        db.execute(text("SELECT 1"))
+    except Exception as e:
+        db_status = f"unreachable: {str(e)}"
+
+    return {
+        "status": "ok" if db_status == "connected" else "degraded",
+        "database": db_status,
+        "environment": settings.ENVIRONMENT,
+        "version": settings.VERSION,
+    }

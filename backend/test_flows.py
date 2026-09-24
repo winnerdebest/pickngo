@@ -1,22 +1,43 @@
 import pytest
 from decimal import Decimal
 from fastapi.testclient import TestClient
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import StaticPool
 from app.main import app
-from app.database import engine, Base, SessionLocal
+from app.database import Base, get_db
 from app.models.enums import TrustTier, TaskType, TaskStatus, PaymentStatus
 from app.models.customer import Customer
 from app.models.runner import Runner
 from app.models.task import Task
-from app.config import settings
 
+# Isolated SQLite in-memory engine for lightning-fast tests
+TEST_DB_URL = "sqlite:///:memory:"
+test_engine = create_engine(
+    TEST_DB_URL,
+    connect_args={"check_same_thread": False},
+    poolclass=StaticPool,
+)
+TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=test_engine)
+
+
+def override_get_db():
+    db = TestingSessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+
+app.dependency_overrides[get_db] = override_get_db
 client = TestClient(app)
 
 
 @pytest.fixture(autouse=True)
 def setup_database():
-    """Reset database tables before tests."""
-    Base.metadata.drop_all(bind=engine)
-    Base.metadata.create_all(bind=engine)
+    """Reset isolated test database before each test."""
+    Base.metadata.drop_all(bind=test_engine)
+    Base.metadata.create_all(bind=test_engine)
     yield
 
 

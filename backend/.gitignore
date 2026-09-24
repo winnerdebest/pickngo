@@ -1,0 +1,9 @@
+/venv
+/venv/*
+pickngo.db
+/__pycache__
+/__pycache__/*
+/.env
+/.env/*
+.pytest_cache
+.pytest_cache/*

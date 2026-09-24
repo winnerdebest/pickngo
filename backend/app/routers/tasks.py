@@ -28,57 +28,96 @@ from app.services.payment import (
 )
 from app.ws import manager
 
+import logging
+
+logger = logging.getLogger("pickngo.tasks")
+
 router = APIRouter(prefix="/tasks", tags=["Tasks"])
 
 
+def _enum_val(val):
+    if val is None:
+        return None
+    if hasattr(val, "value"):
+        return val.value
+    return str(val)
+
+
 def _task_to_ws_dict(task: Task) -> dict:
-    """Convert a Task ORM object to a complete JSON-serializable dict for WebSocket broadcast."""
-    return {
-        "id": str(task.id),
-        "type": task.type.value if task.type else None,
-        "status": task.status.value if task.status else None,
-        "customer_id": str(task.customer_id) if task.customer_id else None,
-        "runner_id": str(task.runner_id) if task.runner_id else None,
-        "description": task.description,
-        "pickup_address": task.pickup_address,
-        "delivery_address": task.delivery_address,
-        "estimated_goods_cost": float(task.estimated_goods_cost) if task.estimated_goods_cost is not None else 0.0,
-        "service_fee": float(task.service_fee) if task.service_fee is not None else 0.0,
-        "total_amount": float(task.total_amount) if task.total_amount is not None else 0.0,
-        "payment_status": task.payment_status.value if task.payment_status else None,
-        "customer_rating": task.customer_rating,
-        "customer_review": task.customer_review,
-        "dispute_reason": task.dispute_reason,
-        "created_at": task.created_at.isoformat() if task.created_at else None,
-        "updated_at": task.updated_at.isoformat() if task.updated_at else None,
-        "customer": {
-            "id": str(task.customer.id),
-            "full_name": task.customer.full_name,
-            "phone": task.customer.phone,
-            "email": task.customer.email,
-        } if task.customer else None,
-        "runner": {
-            "id": str(task.runner.id),
-            "full_name": task.runner.full_name,
-            "phone": task.runner.phone,
-            "bike_plate_number": task.runner.bike_plate_number,
-            "trust_tier": task.runner.trust_tier.value if task.runner.trust_tier else "BRONZE",
-            "trust_score": float(task.runner.trust_score) if task.runner.trust_score else 5.0,
-        } if task.runner else None,
-    }
+    """Safely convert a Task ORM object to a JSON-serializable dict for WebSocket broadcast."""
+    try:
+        created_at_str = task.created_at.isoformat() if getattr(task, "created_at", None) else None
+        updated_at_str = task.updated_at.isoformat() if getattr(task, "updated_at", None) else None
+
+        cust_data = None
+        try:
+            if getattr(task, "customer", None):
+                cust_data = {
+                    "id": str(task.customer.id),
+                    "full_name": str(task.customer.full_name or ""),
+                    "phone": str(task.customer.phone or ""),
+                    "email": str(task.customer.email or ""),
+                }
+        except Exception:
+            cust_data = None
+
+        run_data = None
+        try:
+            if getattr(task, "runner", None):
+                run_data = {
+                    "id": str(task.runner.id),
+                    "full_name": str(task.runner.full_name or ""),
+                    "phone": str(task.runner.phone or ""),
+                    "bike_plate_number": str(task.runner.bike_plate_number or ""),
+                    "trust_tier": _enum_val(task.runner.trust_tier) or "BRONZE",
+                    "trust_score": float(task.runner.trust_score) if getattr(task.runner, "trust_score", None) is not None else 5.0,
+                }
+        except Exception:
+            run_data = None
+
+        return {
+            "id": str(task.id),
+            "type": _enum_val(task.type),
+            "status": _enum_val(task.status),
+            "customer_id": str(task.customer_id) if getattr(task, "customer_id", None) else None,
+            "runner_id": str(task.runner_id) if getattr(task, "runner_id", None) else None,
+            "description": str(task.description or ""),
+            "pickup_address": str(task.pickup_address or ""),
+            "delivery_address": str(task.delivery_address or ""),
+            "estimated_goods_cost": float(task.estimated_goods_cost) if getattr(task, "estimated_goods_cost", None) is not None else 0.0,
+            "service_fee": float(task.service_fee) if getattr(task, "service_fee", None) is not None else 0.0,
+            "total_amount": float(task.total_amount) if getattr(task, "total_amount", None) is not None else 0.0,
+            "payment_status": _enum_val(task.payment_status),
+            "customer_rating": task.customer_rating if getattr(task, "customer_rating", None) is not None else None,
+            "customer_review": task.customer_review if getattr(task, "customer_review", None) is not None else None,
+            "dispute_reason": task.dispute_reason if getattr(task, "dispute_reason", None) is not None else None,
+            "created_at": created_at_str,
+            "updated_at": updated_at_str,
+            "customer": cust_data,
+            "runner": run_data,
+        }
+    except Exception as e:
+        logger.warning(f"Error serializing task {getattr(task, 'id', 'unknown')} for WS: {e}")
+        return {"id": str(getattr(task, "id", "")), "status": _enum_val(getattr(task, "status", None))}
 
 
 def _broadcast_task(task: Task):
-    """Thread-safe broadcast of task update to WebSocket subscribers."""
-    task_data = _task_to_ws_dict(task)
-    task_id = str(task.id)
-    manager.broadcast_task_sync(task_id, task_data)
+    """Thread-safe, exception-safe broadcast of task update to WebSocket subscribers."""
+    try:
+        task_data = _task_to_ws_dict(task)
+        task_id = str(task.id)
+        manager.broadcast_task_sync(task_id, task_data)
+    except Exception as e:
+        logger.warning(f"Failed to broadcast task {getattr(task, 'id', 'unknown')}: {e}")
 
 
 def _broadcast_new_available(task: Task):
-    """Thread-safe broadcast to runners that a new task is available."""
-    task_data = _task_to_ws_dict(task)
-    manager.broadcast_new_available_sync(task_data)
+    """Thread-safe, exception-safe broadcast to runners that a new task is available."""
+    try:
+        task_data = _task_to_ws_dict(task)
+        manager.broadcast_new_available_sync(task_data)
+    except Exception as e:
+        logger.warning(f"Failed to broadcast new available task {getattr(task, 'id', 'unknown')}: {e}")
 
 
 @router.post("/", response_model=TaskResponse, status_code=status.HTTP_201_CREATED)

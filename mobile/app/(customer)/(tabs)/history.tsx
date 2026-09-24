@@ -34,7 +34,7 @@ export default function CustomerHistoryScreen() {
 
   const loadHistory = useCallback(
     async (isRefresh = false) => {
-      if (!user) return;
+      if (!user?.id) return;
       try {
         if (isRefresh) setRefreshing(true);
         else setLoading(true);
@@ -48,7 +48,7 @@ export default function CustomerHistoryScreen() {
         setRefreshing(false);
       }
     },
-    [user]
+    [user?.id]
   );
 
   useFocusEffect(

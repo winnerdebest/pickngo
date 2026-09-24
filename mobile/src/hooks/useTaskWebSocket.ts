@@ -80,12 +80,16 @@ export function useTaskWebSocket({ taskId, initialTask, onStatusChange }: UseTas
     };
   }, [taskId, fetchTask]);
 
+  const refetch = useCallback(() => {
+    fetchTask(false);
+  }, [fetchTask]);
+
   return {
     task,
     setTask,
     isConnected,
     isLoading,
     error,
-    refetch: () => fetchTask(false),
+    refetch,
   };
 }

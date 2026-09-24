@@ -86,6 +86,10 @@ export function useAvailableTasksWebSocket({ runnerId }: UseAvailableTasksOption
     };
   }, [runnerId, fetchTasks]);
 
+  const refresh = useCallback(() => {
+    fetchTasks(true, false);
+  }, [fetchTasks]);
+
   return {
     tasks,
     setTasks,
@@ -93,6 +97,6 @@ export function useAvailableTasksWebSocket({ runnerId }: UseAvailableTasksOption
     isLoading,
     isRefreshing,
     error,
-    refresh: () => fetchTasks(true, false),
+    refresh,
   };
 }

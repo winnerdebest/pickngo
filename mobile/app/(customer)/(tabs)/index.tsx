@@ -33,7 +33,7 @@ export default function CustomerHomeScreen() {
 
   const loadTasks = useCallback(
     async (isRefresh = false, isSilent = false) => {
-      if (!user) return;
+      if (!user?.id) return;
       try {
         if (isRefresh) setRefreshing(true);
         else if (!isSilent) setLoading(true);
@@ -49,16 +49,12 @@ export default function CustomerHomeScreen() {
         if (isRefresh) setRefreshing(false);
       }
     },
-    [user]
+    [user?.id]
   );
 
   useFocusEffect(
     useCallback(() => {
       loadTasks(false, false);
-      const interval = setInterval(() => {
-        loadTasks(false, true);
-      }, 5000);
-      return () => clearInterval(interval);
     }, [loadTasks])
   );
 

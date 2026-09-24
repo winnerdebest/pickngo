@@ -35,12 +35,6 @@ export default function RunnerAvailableFeedScreen() {
     refresh,
   } = useAvailableTasksWebSocket({ runnerId: user?.id });
 
-  useFocusEffect(
-    useCallback(() => {
-      refresh();
-    }, [refresh])
-  );
-
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={['top']}>
       {/* Top Header with Logo & Status */}

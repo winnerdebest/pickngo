@@ -32,7 +32,7 @@ export default function RunnerHistoryScreen() {
 
   const loadRunnerHistory = useCallback(
     async (isRefresh = false) => {
-      if (!user) return;
+      if (!user?.id) return;
       try {
         if (isRefresh) setRefreshing(true);
         else setLoading(true);
@@ -46,7 +46,7 @@ export default function RunnerHistoryScreen() {
         setRefreshing(false);
       }
     },
-    [user]
+    [user?.id]
   );
 
   useFocusEffect(

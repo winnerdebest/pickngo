@@ -1,41 +1,110 @@
-This is an Expo/React Native mobile application. Prioritize mobile-first patterns, performance, and cross-platform compatibility.
+# PickNGo Mobile Application (Expo & React Native)
 
-## Expo has changed — do not trust your training data
+Cross-platform iOS and Android mobile app for **PickNGo** — Nigerian bike-based errands and delivery service.
 
-Expo ships breaking changes every SDK release. APIs you remember are likely renamed, moved, or removed. Before writing any code that touches an Expo, EAS, or React Native API:
+## Architecture Overview
 
-1. Read the major version of the `expo` package in `package.json`.
-2. Fetch the matching versioned docs: `https://docs.expo.dev/versions/v<major>.0.0/`
-3. For anything else, fetch https://docs.expo.dev/llms.txt — an index of all Expo docs with corrections to common LLM misconceptions. Follow its links to the specific page you need; never answer from memory.
+- **Framework**: Expo SDK 57 (React Native 0.86) + TypeScript
+- **Navigation**: Expo Router (file-based routing in `app/`)
+- **State Management**: React Context (`src/context/AuthContext.tsx`) persisted with `expo-secure-store`
+- **Networking**: Axios (`src/api/client.ts`) with custom error interceptor
+- **Real-Time Updates**: Native WebSockets with auto-reconnection (`src/utils/websocket.ts`, `src/hooks/useTaskWebSocket.ts`, `src/hooks/useAvailableTasksWebSocket.ts`)
 
-## Commands
+---
 
-Use `bunx` instead of `npx` if the project uses bun (`bun.lock` present).
+## Brand System & Colors
 
-```bash
-npx expo install <package>  # ALWAYS use instead of npm/yarn/pnpm/bun add — resolves SDK-compatible versions
-npx expo start              # start the dev server
-npx expo lint               # lint
-npx tsc --noEmit            # typecheck
-npx expo-doctor             # diagnose dependency and config issues
-npx expo install --fix      # fix incompatible package versions
+- **Charcoal Black** (`#1A1A1A`): Primary background, headings, brand identity
+- **Warm Coral** (`#FF6F59`): Primary buttons, active tabs, accents, live indicators
+- **Surfaces**: Clean cards (`#FFFFFF`), borders (`#E2E8F0`), subtle backgrounds (`#F8F9FA`)
+- **Status Colors**: Success Green (`#10B981`), Warning Amber (`#F59E0B`), Error Red (`#EF4444`)
+
+---
+
+## Directory Structure
+
+```
+mobile/
+├── app/                          # Expo Router file-based screens
+│   ├── _layout.tsx               # Root layout (AuthProvider, SafeArea, StatusBar)
+│   ├── index.tsx                 # Splash/entry redirect based on auth & role
+│   ├── (auth)/                   # Auth stack
+│   │   ├── _layout.tsx
+│   │   ├── login.tsx             # Email login with Customer/Runner toggle
+│   │   ├── signup.tsx            # Full registration form
+│   │   └── role-select.tsx       # Customer vs Runner role selection (+ bike plate)
+│   ├── (customer)/               # Customer flow (Tab + nested screens)
+│   │   ├── _layout.tsx           # Customer tab navigation
+│   │   ├── index.tsx             # Customer Home (Post task, active order, quick categories)
+│   │   ├── create-task.tsx       # Task creation with live fee calculations
+│   │   ├── fund-task.tsx         # Escrow lock payment summary
+│   │   ├── track-task.tsx        # Real-time WebSocket task tracker & dispute
+│   │   ├── confirm-rate.tsx      # Delivery confirmation & 5-star rating
+│   │   ├── history.tsx           # Task history with status tabs
+│   │   └── profile.tsx           # Profile info, role switcher, logout
+│   └── (runner)/                 # Runner flow (Tab + nested screens)
+│       ├── _layout.tsx           # Runner tab navigation
+│       ├── index.tsx             # Live WebSocket available tasks feed
+│       ├── task-detail.tsx       # Task breakdown, trust-tier validation & Accept action
+│       ├── active-task.tsx       # Step-by-step active errand executor
+│       ├── history.tsx           # Completed runs & earnings summary
+│       └── profile.tsx           # Trust tier (Bronze->Platinum), trust score, stats
+└── src/
+    ├── api/                      # Backend API clients & TypeScript types
+    │   ├── client.ts             # Axios instance configured for Render backend
+    │   ├── customers.ts          # Customer endpoints
+    │   ├── runners.ts            # Runner endpoints
+    │   ├── tasks.ts              # Task & escrow lifecycle endpoints
+    │   └── types.ts              # Complete schema definitions
+    ├── constants/
+    │   ├── colors.ts             # Centralized design tokens
+    │   └── config.ts             # API & WebSocket URLs (https://pickngo.onrender.com)
+    ├── context/
+    │   └── AuthContext.tsx        # Session management & SecureStore persistence
+    ├── hooks/
+    │   ├── useAuth.ts
+    │   ├── useTaskWebSocket.ts
+    │   └── useAvailableTasksWebSocket.ts
+    ├── components/               # Reusable UI component library
+    │   ├── Button.tsx
+    │   ├── Input.tsx
+    │   ├── StatusBadge.tsx
+    │   ├── TrustBadge.tsx
+    │   ├── StarRating.tsx
+    │   ├── LiveIndicator.tsx
+    │   ├── TaskCard.tsx
+    │   ├── LoadingOverlay.tsx
+    │   ├── ErrorMessage.tsx
+    │   ├── EmptyState.tsx
+    │   └── Header.tsx
+    └── utils/
+        ├── formatters.ts         # Naira currency (₦) & date helpers
+        └── websocket.ts          # WebSocket client with exponential backoff & heartbeat
 ```
 
-Run lint and typecheck before declaring any task done.
+---
 
-## Navigation & Routing
+## Live Endpoints & Real-Time WebSockets
 
-- Use **Expo Router** for all navigation. Routes live in `src/app/` — every file there is a screen, `_layout.tsx` files define navigators. Keep non-route code (components, hooks, utils) outside `src/app/`.
-- Import `Link`, `router`, and `useLocalSearchParams` from `expo-router`.
-- Docs: https://docs.expo.dev/router/introduction.md
+- **API Base URL**: `https://pickngo.onrender.com/api/v1`
+- **WebSocket Base URL**: `wss://pickngo.onrender.com`
+  - `/ws/tasks/{task_id}`: Customer & runner live status sync
+  - `/ws/available-tasks`: Real-time available task broadcast for runners
 
-## Building with EAS
+---
 
-Use EAS to build, sign, and submit the app in the cloud (`eas build`, `eas submit`) and to ship over-the-air updates (`eas update`) — no local Xcode or Android Studio required. Run EAS CLI as `bunx eas-cli <command>` in Bun projects, or `npx eas-cli@latest <command>` otherwise; substitute that for bare `eas` in docs examples.
-Docs: https://docs.expo.dev/eas/index.md
+## Development Commands
 
-## Rules
+```bash
+# Start local development server
+npm start
 
-- If `ios/` and `android/` directories do not exist, they are generated (Continuous Native Generation). Never create or edit them by hand — configure native behavior in `app.json` and config plugins.
-- Expo Go only includes its bundled native modules. After adding a library with native code, the app needs a development build: `npx expo run:ios|android` locally, or `eas build --profile development`.
-- Prefer recommended Expo modules over third-party libraries, and check your available skills before adding dependencies. Docs: https://docs.expo.dev/versions/latest/index.md
+# Run on Android emulator / device
+npm run android
+
+# Run on iOS simulator / device
+npm run ios
+
+# Run web preview
+npm run web
+```

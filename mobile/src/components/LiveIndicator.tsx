@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, Animated, ViewStyle } from 'react-native';
-import { colors } from '../constants/colors';
+import { useTheme } from '../hooks/useTheme';
 
 interface LiveIndicatorProps {
   connected?: boolean;
@@ -13,6 +13,7 @@ export const LiveIndicator: React.FC<LiveIndicatorProps> = ({
   label = 'LIVE',
   style,
 }) => {
+  const { colors } = useTheme();
   const pulseAnim = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
@@ -37,13 +38,20 @@ export const LiveIndicator: React.FC<LiveIndicatorProps> = ({
   }, [connected, pulseAnim]);
 
   return (
-    <View style={[styles.container, style]}>
+    <View
+      style={[
+        styles.container,
+        { backgroundColor: connected ? colors.successLight : colors.warningLight },
+        style,
+      ]}
+    >
       <View style={styles.dotWrapper}>
         {connected && (
           <Animated.View
             style={[
               styles.pulseCircle,
               {
+                backgroundColor: colors.success,
                 transform: [{ scale: pulseAnim }],
                 opacity: pulseAnim.interpolate({
                   inputRange: [1, 1.6],
@@ -71,7 +79,6 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.successLight,
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 12,
@@ -94,7 +101,6 @@ const styles = StyleSheet.create({
     width: 12,
     height: 12,
     borderRadius: 6,
-    backgroundColor: colors.success,
   },
   label: {
     fontSize: 10,

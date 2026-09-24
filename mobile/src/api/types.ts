@@ -131,7 +131,8 @@ export interface AuthSession {
 }
 
 export interface WebSocketMessage {
-  type: 'task_update' | 'new_task_available' | 'ping' | 'pong';
+  type: 'task_update' | 'new_task_available' | 'task_removed' | 'ping' | 'pong';
   task?: Task;
+  task_id?: string;
   message?: string;
 }

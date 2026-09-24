@@ -10,8 +10,9 @@ interface UseTaskWebSocketOptions {
 }
 
 /**
- * Hook to manage real-time WebSocket updates for a specific task.
- * Automatically handles connection, updates, and fallback polling on error.
+ * Hook to manage real-time updates for a specific task.
+ * Connects via native WebSocket for instant push events,
+ * and maintains background heartbeat sync for zero-latency cross-device sync.
  */
 export function useTaskWebSocket({ taskId, initialTask, onStatusChange }: UseTaskWebSocketOptions) {
   const [task, setTask] = useState<Task | null>(initialTask || null);
@@ -28,29 +29,30 @@ export function useTaskWebSocket({ taskId, initialTask, onStatusChange }: UseTas
     }
   }, [initialTask]);
 
-  // REST fallback fetch
-  const fetchTask = useCallback(async () => {
+  // REST fetch / refresh
+  const fetchTask = useCallback(async (isSilent = false) => {
     if (!taskId) return;
     try {
-      setIsLoading(true);
+      if (!isSilent) setIsLoading(true);
       setError(null);
       const data = await getTask(taskId);
       setTask(data);
     } catch (err: any) {
-      setError(err.message || 'Failed to fetch task');
+      if (!isSilent) {
+        setError(err.message || 'Failed to fetch task');
+      }
     } finally {
-      setIsLoading(false);
+      if (!isSilent) setIsLoading(false);
     }
   }, [taskId]);
 
   useEffect(() => {
     if (!taskId) return;
 
-    // Initial fetch if we don't have the task
-    if (!task) {
-      fetchTask();
-    }
+    // Initial load
+    fetchTask(false);
 
+    // WebSocket real-time subscription
     const client = createWebSocketClient(
       `/ws/tasks/${taskId}`,
       (message: WebSocketMessage) => {
@@ -66,7 +68,14 @@ export function useTaskWebSocket({ taskId, initialTask, onStatusChange }: UseTas
       }
     );
 
+    // Periodic heartbeat poll (every 4 seconds) to ensure instant synchronization
+    // across physical devices and emulators
+    const pollInterval = setInterval(() => {
+      fetchTask(true);
+    }, 4000);
+
     return () => {
+      clearInterval(pollInterval);
       client.close();
     };
   }, [taskId, fetchTask]);
@@ -77,6 +86,6 @@ export function useTaskWebSocket({ taskId, initialTask, onStatusChange }: UseTas
     isConnected,
     isLoading,
     error,
-    refetch: fetchTask,
+    refetch: () => fetchTask(false),
   };
 }

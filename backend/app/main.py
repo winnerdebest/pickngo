@@ -1,3 +1,4 @@
+import asyncio
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Depends, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
@@ -18,6 +19,8 @@ from app.ws import manager
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # Capture main event loop for thread-safe WebSocket broadcasts
+    manager.set_event_loop(asyncio.get_running_loop())
     # Initialize tables on startup
     Base.metadata.create_all(bind=engine)
     yield

@@ -1,9 +1,10 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ViewStyle } from 'react-native';
 import { Task } from '../api/types';
-import { colors } from '../constants/colors';
+import { useTheme } from '../hooks/useTheme';
 import { formatNaira, formatDate, getTaskTypeInfo } from '../utils/formatters';
 import { StatusBadge } from './StatusBadge';
+import { Icon } from './Icon';
 
 interface TaskCardProps {
   task: Task;
@@ -12,58 +13,81 @@ interface TaskCardProps {
 }
 
 export const TaskCard: React.FC<TaskCardProps> = ({ task, onPress, style }) => {
+  const { colors, isDark } = useTheme();
   const typeInfo = getTaskTypeInfo(task.type);
 
   return (
     <TouchableOpacity
       activeOpacity={0.85}
       onPress={onPress}
-      style={[styles.card, style]}
+      style={[
+        styles.card,
+        {
+          backgroundColor: isDark ? colors.card : colors.white,
+          borderColor: colors.border,
+        },
+        style,
+      ]}
     >
       {/* Top row: Type & Status */}
       <View style={styles.topRow}>
         <View style={styles.typeBadge}>
-          <Text style={styles.typeIcon}>{typeInfo.icon}</Text>
-          <Text style={styles.typeTitle}>{typeInfo.title}</Text>
+          <Icon
+            name={task.type === 'SUPERMARKET_RUN' ? 'cart' : 'package'}
+            size={18}
+            color={colors.coral}
+          />
+          <Text style={[styles.typeTitle, { color: colors.textPrimary }]}>
+            {typeInfo.title}
+          </Text>
         </View>
         <StatusBadge status={task.status} size="small" />
       </View>
 
       {/* Description Preview */}
-      <Text style={styles.description} numberOfLines={2}>
+      <Text style={[styles.description, { color: colors.textSecondary }]} numberOfLines={2}>
         {task.description}
       </Text>
 
       {/* Route Addresses */}
-      <View style={styles.routeContainer}>
+      <View
+        style={[
+          styles.routeContainer,
+          { backgroundColor: isDark ? colors.cardSubtle : colors.surfaceSubtle },
+        ]}
+      >
         <View style={styles.addressRow}>
-          <View style={[styles.dotMarker, { backgroundColor: colors.coral }]} />
-          <Text style={styles.addressText} numberOfLines={1}>
-            <Text style={styles.addressLabel}>Pick: </Text>
+          <Icon name="map-pin" size={14} color={colors.coral} />
+          <Text style={[styles.addressText, { color: colors.textSecondary }]} numberOfLines={1}>
+            <Text style={[styles.addressLabel, { color: colors.textPrimary }]}>Pick: </Text>
             {task.pickup_address}
           </Text>
         </View>
 
-        <View style={styles.routeLine} />
+        <View style={[styles.routeLine, { backgroundColor: colors.border }]} />
 
         <View style={styles.addressRow}>
-          <View style={[styles.dotMarker, { backgroundColor: colors.charcoal }]} />
-          <Text style={styles.addressText} numberOfLines={1}>
-            <Text style={styles.addressLabel}>Drop: </Text>
+          <Icon name="map-pin" size={14} color={colors.textMuted} />
+          <Text style={[styles.addressText, { color: colors.textSecondary }]} numberOfLines={1}>
+            <Text style={[styles.addressLabel, { color: colors.textPrimary }]}>Drop: </Text>
             {task.delivery_address}
           </Text>
         </View>
       </View>
 
       {/* Bottom row: Total Amount & Date */}
-      <View style={styles.bottomRow}>
+      <View style={[styles.bottomRow, { borderTopColor: colors.border }]}>
         <View>
-          <Text style={styles.amountLabel}>Total Value</Text>
-          <Text style={styles.amountValue}>{formatNaira(task.total_amount)}</Text>
+          <Text style={[styles.amountLabel, { color: colors.textMuted }]}>Total Value</Text>
+          <Text style={[styles.amountValue, { color: colors.coral }]}>
+            {formatNaira(task.total_amount)}
+          </Text>
         </View>
 
         <View style={styles.dateContainer}>
-          <Text style={styles.dateText}>{formatDate(task.created_at)}</Text>
+          <Text style={[styles.dateText, { color: colors.textMuted }]}>
+            {formatDate(task.created_at)}
+          </Text>
         </View>
       </View>
     </TouchableOpacity>
@@ -72,17 +96,15 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, onPress, style }) => {
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: colors.white,
-    borderRadius: 16,
+    borderRadius: 18,
     padding: 16,
     marginBottom: 14,
     borderWidth: 1,
-    borderColor: colors.border,
-    shadowColor: colors.charcoal,
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
+    shadowOpacity: 0.12,
     shadowRadius: 6,
-    elevation: 2,
+    elevation: 3,
   },
   topRow: {
     flexDirection: 'row',
@@ -93,26 +115,20 @@ const styles = StyleSheet.create({
   typeBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-  },
-  typeIcon: {
-    fontSize: 16,
+    gap: 8,
   },
   typeTitle: {
     fontSize: 14,
-    fontWeight: '700',
-    color: colors.textPrimary,
+    fontWeight: '800',
   },
   description: {
     fontSize: 14,
-    color: colors.textSecondary,
     lineHeight: 20,
     marginBottom: 14,
   },
   routeContainer: {
-    backgroundColor: colors.surfaceSubtle,
-    borderRadius: 10,
-    padding: 10,
+    borderRadius: 12,
+    padding: 12,
     marginBottom: 14,
   },
   addressRow: {
@@ -120,51 +136,39 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
   },
-  dotMarker: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-  },
   routeLine: {
     width: 2,
     height: 10,
-    backgroundColor: colors.borderDark,
-    marginLeft: 3,
+    marginLeft: 6,
     marginVertical: 2,
   },
   addressLabel: {
     fontWeight: '700',
-    color: colors.textPrimary,
   },
   addressText: {
     flex: 1,
     fontSize: 13,
-    color: colors.textSecondary,
   },
   bottomRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     borderTopWidth: 1,
-    borderTopColor: colors.border,
     paddingTop: 12,
   },
   amountLabel: {
     fontSize: 11,
-    color: colors.textMuted,
-    fontWeight: '600',
+    fontWeight: '700',
     textTransform: 'uppercase',
   },
   amountValue: {
-    fontSize: 17,
-    fontWeight: '800',
-    color: colors.coral,
+    fontSize: 18,
+    fontWeight: '900',
   },
   dateContainer: {
     alignItems: 'flex-end',
   },
   dateText: {
     fontSize: 12,
-    color: colors.textMuted,
   },
 });

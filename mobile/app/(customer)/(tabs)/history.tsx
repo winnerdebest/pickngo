@@ -8,22 +8,23 @@ import {
   RefreshControl,
   ActivityIndicator,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useAuth } from '../../src/hooks/useAuth';
-import { colors } from '../../src/constants/colors';
-import { Task } from '../../src/api/types';
-import { getCustomerTasks } from '../../src/api/customers';
-import { Header } from '../../src/components/Header';
-import { TaskCard } from '../../src/components/TaskCard';
-import { EmptyState } from '../../src/components/EmptyState';
-import { ErrorMessage } from '../../src/components/ErrorMessage';
+import { useAuth } from '../../../src/hooks/useAuth';
+import { useTheme } from '../../../src/hooks/useTheme';
+import { Task } from '../../../src/api/types';
+import { getCustomerTasks } from '../../../src/api/customers';
+import { Header } from '../../../src/components/Header';
+import { TaskCard } from '../../../src/components/TaskCard';
+import { EmptyState } from '../../../src/components/EmptyState';
+import { ErrorMessage } from '../../../src/components/ErrorMessage';
 
 type FilterTab = 'ALL' | 'ACTIVE' | 'COMPLETED' | 'CANCELLED';
 
 export default function CustomerHistoryScreen() {
   const router = useRouter();
   const { user } = useAuth();
+  const { colors, isDark } = useTheme();
 
   const [tasks, setTasks] = useState<Task[]>([]);
   const [selectedFilter, setSelectedFilter] = useState<FilterTab>('ALL');
@@ -50,9 +51,11 @@ export default function CustomerHistoryScreen() {
     [user]
   );
 
-  useEffect(() => {
-    loadHistory();
-  }, [loadHistory]);
+  useFocusEffect(
+    useCallback(() => {
+      loadHistory();
+    }, [loadHistory])
+  );
 
   const filteredTasks = tasks.filter((task) => {
     switch (selectedFilter) {
@@ -69,11 +72,19 @@ export default function CustomerHistoryScreen() {
   });
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={['top']}>
       <Header title="My Task History" />
 
       {/* Filter Tabs */}
-      <View style={styles.filterContainer}>
+      <View
+        style={[
+          styles.filterContainer,
+          {
+            backgroundColor: isDark ? colors.charcoal : colors.white,
+            borderBottomColor: colors.border,
+          },
+        ]}
+      >
         {(['ALL', 'ACTIVE', 'COMPLETED', 'CANCELLED'] as FilterTab[]).map((tab) => {
           const isActive = selectedFilter === tab;
           return (
@@ -81,9 +92,29 @@ export default function CustomerHistoryScreen() {
               key={tab}
               activeOpacity={0.8}
               onPress={() => setSelectedFilter(tab)}
-              style={[styles.filterTab, isActive && styles.filterTabActive]}
+              style={[
+                styles.filterTab,
+                {
+                  backgroundColor: isActive
+                    ? colors.coral
+                    : isDark
+                    ? colors.cardElevated
+                    : colors.surfaceSubtle,
+                },
+              ]}
             >
-              <Text style={[styles.filterText, isActive && styles.filterTextActive]}>
+              <Text
+                style={[
+                  styles.filterText,
+                  {
+                    color: isActive
+                      ? '#FFFFFF'
+                      : isDark
+                      ? colors.textSecondary
+                      : colors.textSecondary,
+                  },
+                ]}
+              >
                 {tab === 'ALL'
                   ? 'All'
                   : tab === 'ACTIVE'
@@ -106,7 +137,9 @@ export default function CustomerHistoryScreen() {
       {loading && !refreshing ? (
         <View style={styles.centerBox}>
           <ActivityIndicator size="large" color={colors.coral} />
-          <Text style={styles.loadingText}>Loading history...</Text>
+          <Text style={[styles.loadingText, { color: colors.textSecondary }]}>
+            Loading history...
+          </Text>
         </View>
       ) : (
         <FlatList
@@ -134,7 +167,7 @@ export default function CustomerHistoryScreen() {
           )}
           ListEmptyComponent={
             <EmptyState
-              icon="📋"
+              icon="history"
               title="No tasks in this category"
               description="You don't have any tasks matching this status filter."
               actionTitle="Post a Task"
@@ -150,33 +183,22 @@ export default function CustomerHistoryScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: colors.background,
   },
   filterContainer: {
     flexDirection: 'row',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: colors.white,
     borderBottomWidth: 1,
-    borderBottomColor: colors.border,
     gap: 8,
   },
   filterTab: {
     paddingVertical: 6,
     paddingHorizontal: 14,
     borderRadius: 20,
-    backgroundColor: colors.surfaceSubtle,
-  },
-  filterTabActive: {
-    backgroundColor: colors.coral,
   },
   filterText: {
     fontSize: 13,
     fontWeight: '700',
-    color: colors.textSecondary,
-  },
-  filterTextActive: {
-    color: colors.white,
   },
   listContent: {
     padding: 20,
@@ -191,6 +213,5 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 12,
     fontSize: 14,
-    color: colors.textSecondary,
   },
 });

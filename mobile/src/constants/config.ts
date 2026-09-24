@@ -2,11 +2,11 @@
  * PickNGo Global Configuration
  */
 
-// Live Render Backend Base URL
-export const API_BASE_URL = 'https://pickngo.onrender.com/api/v1';
+// API Base URL strictly from environment variable (.env: EXPO_PUBLIC_API_URL)
+export const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || '';
 
-// Live WebSocket Base URL (Convert https to wss)
-export const WS_BASE_URL = 'wss://pickngo.onrender.com';
+// WebSocket Base URL strictly from environment variable (.env: EXPO_PUBLIC_WS_URL)
+export const WS_BASE_URL = process.env.EXPO_PUBLIC_WS_URL || '';
 
 export const APP_CONFIG = {
   APP_NAME: 'PickNGo',

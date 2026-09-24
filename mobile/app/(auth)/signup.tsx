@@ -7,16 +7,21 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  TouchableWithoutFeedback,
+  Keyboard,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { colors } from '../../src/constants/colors';
+import { useTheme } from '../../src/hooks/useTheme';
 import { Input } from '../../src/components/Input';
 import { Button } from '../../src/components/Button';
 import { ErrorMessage } from '../../src/components/ErrorMessage';
+import { Logo } from '../../src/components/Logo';
+import { Icon } from '../../src/components/Icon';
 
 export default function SignupScreen() {
   const router = useRouter();
+  const { colors, isDark } = useTheme();
 
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
@@ -39,7 +44,6 @@ export default function SignupScreen() {
     }
 
     setError(null);
-    // Navigate to role select with params
     router.push({
       pathname: '/(auth)/role-select',
       params: {
@@ -52,26 +56,39 @@ export default function SignupScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        style={styles.container}
-      >
-        <ScrollView
-          contentContainerStyle={styles.scrollContent}
-          keyboardShouldPersistTaps="handled"
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          style={styles.container}
         >
-          {/* Header */}
-          <View style={styles.header}>
+          <ScrollView
+            contentContainerStyle={styles.scrollContent}
+            keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="on-drag"
+          >
+          {/* Top Bar with Back Button and Logo */}
+          <View style={styles.topRow}>
             <TouchableOpacity
               activeOpacity={0.7}
               onPress={() => router.back()}
-              style={styles.backBtn}
+              style={[
+                styles.backBtn,
+                { backgroundColor: isDark ? colors.cardElevated : colors.surfaceSubtle },
+              ]}
             >
-              <Text style={styles.backArrow}>←</Text>
+              <Icon name="arrow-left" size={20} color={colors.textPrimary} />
             </TouchableOpacity>
-            <Text style={styles.title}>Create Account</Text>
-            <Text style={styles.subtitle}>Join PickNGo in seconds</Text>
+            <Logo size="small" theme={isDark ? 'dark' : 'light'} variant="combo" />
+            <View style={{ width: 38 }} />
+          </View>
+
+          {/* Header */}
+          <View style={styles.header}>
+            <Text style={[styles.title, { color: colors.textPrimary }]}>Create Account</Text>
+            <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
+              Join PickNGo in seconds
+            </Text>
           </View>
 
           {/* Error Banner */}
@@ -88,6 +105,7 @@ export default function SignupScreen() {
                 if (error) setError(null);
               }}
               autoCapitalize="words"
+              prefix={<Icon name="person" size={18} color={colors.textMuted} />}
             />
 
             <Input
@@ -101,6 +119,7 @@ export default function SignupScreen() {
               keyboardType="email-address"
               autoCapitalize="none"
               autoCorrect={false}
+              prefix={<Icon name="mail" size={18} color={colors.textMuted} />}
             />
 
             <Input
@@ -112,6 +131,7 @@ export default function SignupScreen() {
                 if (error) setError(null);
               }}
               keyboardType="phone-pad"
+              prefix={<Icon name="phone" size={18} color={colors.textMuted} />}
             />
 
             <Input
@@ -120,10 +140,11 @@ export default function SignupScreen() {
               value={password}
               onChangeText={setPassword}
               secureTextEntry
+              prefix={<Icon name="lock" size={18} color={colors.textMuted} />}
             />
 
             <Button
-              title="Continue →"
+              title="Continue"
               onPress={handleNext}
               style={styles.submitBtn}
             />
@@ -131,16 +152,19 @@ export default function SignupScreen() {
 
           {/* Footer */}
           <View style={styles.footer}>
-            <Text style={styles.footerText}>Already have an account? </Text>
+            <Text style={[styles.footerText, { color: colors.textSecondary }]}>
+              Already have an account?{' '}
+            </Text>
             <TouchableOpacity
               activeOpacity={0.7}
               onPress={() => router.push('/(auth)/login')}
             >
-              <Text style={styles.loginLink}>Sign In</Text>
+              <Text style={[styles.loginLink, { color: colors.coral }]}>Sign In</Text>
             </TouchableOpacity>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+      </TouchableWithoutFeedback>
     </SafeAreaView>
   );
 }
@@ -148,7 +172,6 @@ export default function SignupScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: colors.background,
   },
   container: {
     flex: 1,
@@ -156,35 +179,31 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     paddingHorizontal: 24,
-    paddingVertical: 24,
+    paddingVertical: 20,
+    justifyContent: 'center',
+  },
+  topRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 20,
+  },
+  backBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: 'center',
     justifyContent: 'center',
   },
   header: {
     marginBottom: 24,
   },
-  backBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: colors.surfaceSubtle,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 16,
-  },
-  backArrow: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: colors.charcoal,
-    marginTop: -2,
-  },
   title: {
     fontSize: 28,
     fontWeight: '900',
-    color: colors.charcoal,
   },
   subtitle: {
     fontSize: 15,
-    color: colors.textSecondary,
     marginTop: 4,
   },
   form: {
@@ -201,11 +220,9 @@ const styles = StyleSheet.create({
   },
   footerText: {
     fontSize: 14,
-    color: colors.textSecondary,
   },
   loginLink: {
     fontSize: 14,
     fontWeight: '800',
-    color: colors.coral,
   },
 });

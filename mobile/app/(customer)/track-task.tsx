@@ -8,10 +8,12 @@ import {
   Alert,
   Modal,
   ActivityIndicator,
+  TouchableWithoutFeedback,
+  Keyboard,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { colors } from '../../src/constants/colors';
+import { useTheme } from '../../src/hooks/useTheme';
 import { TaskStatus } from '../../src/api/types';
 import { cancelTask, disputeTask } from '../../src/api/tasks';
 import { formatNaira, formatDate, getStatusMeta, getTaskTypeInfo } from '../../src/utils/formatters';
@@ -23,20 +25,22 @@ import { LiveIndicator } from '../../src/components/LiveIndicator';
 import { Button } from '../../src/components/Button';
 import { Input } from '../../src/components/Input';
 import { ErrorMessage } from '../../src/components/ErrorMessage';
+import { Icon, IconName } from '../../src/components/Icon';
 
-const TIMELINE_STEPS: { status: TaskStatus; label: string; icon: string }[] = [
-  { status: 'PENDING', label: 'Payment Pending', icon: '💳' },
-  { status: 'FUNDED', label: 'Finding Runner', icon: '🔍' },
-  { status: 'ACCEPTED', label: 'Runner Assigned', icon: '🛵' },
-  { status: 'IN_PROGRESS', label: 'Errand In Progress', icon: '🏃' },
-  { status: 'PICKED_UP', label: 'Items Picked Up', icon: '📦' },
-  { status: 'DELIVERED', label: 'Delivered', icon: '📍' },
-  { status: 'COMPLETED', label: 'Completed', icon: '🎉' },
+const TIMELINE_STEPS: { status: TaskStatus; label: string; icon: IconName }[] = [
+  { status: 'PENDING', label: 'Payment Pending', icon: 'wallet' },
+  { status: 'FUNDED', label: 'Finding Runner', icon: 'search' },
+  { status: 'ACCEPTED', label: 'Runner Assigned', icon: 'bike' },
+  { status: 'IN_PROGRESS', label: 'Errand In Progress', icon: 'flash' },
+  { status: 'PICKED_UP', label: 'Items Picked Up', icon: 'package' },
+  { status: 'DELIVERED', label: 'Delivered', icon: 'map-pin' },
+  { status: 'COMPLETED', label: 'Completed', icon: 'check-circle' },
 ];
 
 export default function TrackTaskScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ taskId: string }>();
+  const { colors, isDark } = useTheme();
 
   const { task, isConnected, isLoading, error, refetch } = useTaskWebSocket({
     taskId: params.taskId,
@@ -99,11 +103,13 @@ export default function TrackTaskScreen() {
 
   if (isLoading && !task) {
     return (
-      <SafeAreaView style={styles.safeArea}>
+      <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>
         <Header title="Live Tracker" showBack />
         <View style={styles.centerBox}>
           <ActivityIndicator size="large" color={colors.coral} />
-          <Text style={styles.loadingText}>Connecting to live tracker...</Text>
+          <Text style={[styles.loadingText, { color: colors.textSecondary }]}>
+            Connecting to live tracker...
+          </Text>
         </View>
       </SafeAreaView>
     );
@@ -111,7 +117,7 @@ export default function TrackTaskScreen() {
 
   if (!task) {
     return (
-      <SafeAreaView style={styles.safeArea}>
+      <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>
         <Header title="Live Tracker" showBack />
         <View style={styles.centerBox}>
           <ErrorMessage message={error || 'Task not found'} onRetry={refetch} />
@@ -125,14 +131,14 @@ export default function TrackTaskScreen() {
   const currentStepIndex = meta.stepIndex;
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={['top']}>
       <Header
         title="Live Tracker"
         showBack
         rightAction={<LiveIndicator connected={isConnected} />}
       />
 
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+      <ScrollView contentContainerStyle={styles.scrollContent} keyboardDismissMode="on-drag">
         {/* Status Highlight Banner */}
         <View
           style={[
@@ -142,7 +148,9 @@ export default function TrackTaskScreen() {
         >
           <View style={styles.bannerHeader}>
             <StatusBadge status={task.status} size="large" />
-            <Text style={styles.taskAmount}>{formatNaira(task.total_amount)}</Text>
+            <Text style={[styles.taskAmount, { color: colors.textPrimary }]}>
+              {formatNaira(task.total_amount)}
+            </Text>
           </View>
           <Text style={[styles.statusDescription, { color: meta.textColor }]}>
             {meta.description}
@@ -151,13 +159,23 @@ export default function TrackTaskScreen() {
 
         {/* Action Callouts for Special States */}
         {task.status === 'PENDING' && (
-          <View style={styles.actionCard}>
-            <Text style={styles.actionCardTitle}>Action Required</Text>
-            <Text style={styles.actionCardSub}>
+          <View
+            style={[
+              styles.actionCard,
+              {
+                backgroundColor: isDark ? colors.card : colors.white,
+                borderColor: colors.coral,
+              },
+            ]}
+          >
+            <Text style={[styles.actionCardTitle, { color: colors.textPrimary }]}>
+              Action Required
+            </Text>
+            <Text style={[styles.actionCardSub, { color: colors.textSecondary }]}>
               Lock funds in escrow so runners can see and accept your request.
             </Text>
             <Button
-              title="Fund Task Now 🔒"
+              title="Fund Task Now"
               onPress={() =>
                 router.push({
                   pathname: '/(customer)/fund-task',
@@ -172,13 +190,26 @@ export default function TrackTaskScreen() {
         )}
 
         {task.status === 'DELIVERED' && (
-          <View style={[styles.actionCard, styles.deliveredCard]}>
-            <Text style={styles.deliveredTitle}>Package Delivered! 🎁</Text>
-            <Text style={styles.actionCardSub}>
+          <View
+            style={[
+              styles.actionCard,
+              {
+                backgroundColor: isDark ? colors.cardElevated : colors.successLight,
+                borderColor: colors.success,
+              },
+            ]}
+          >
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+              <Icon name="check-circle" size={24} color={colors.success} />
+              <Text style={[styles.deliveredTitle, { color: colors.successText }]}>
+                Package Delivered!
+              </Text>
+            </View>
+            <Text style={[styles.actionCardSub, { color: colors.textSecondary }]}>
               Please inspect your items and release payment to the runner.
             </Text>
             <Button
-              title="Confirm & Rate Runner ⭐"
+              title="Confirm & Rate Runner"
               onPress={() =>
                 router.push({
                   pathname: '/(customer)/confirm-rate',
@@ -193,8 +224,18 @@ export default function TrackTaskScreen() {
         )}
 
         {/* Real-Time Status Timeline */}
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Status Timeline</Text>
+        <View
+          style={[
+            styles.card,
+            {
+              backgroundColor: isDark ? colors.card : colors.white,
+              borderColor: colors.border,
+            },
+          ]}
+        >
+          <Text style={[styles.cardTitle, { color: colors.textPrimary }]}>
+            Status Timeline
+          </Text>
 
           <View style={styles.timelineContainer}>
             {TIMELINE_STEPS.map((step, index) => {
@@ -207,17 +248,34 @@ export default function TrackTaskScreen() {
                     <View
                       style={[
                         styles.timelineDot,
-                        isPassed && styles.timelineDotPassed,
-                        isCurrent && styles.timelineDotCurrent,
+                        {
+                          backgroundColor: isCurrent
+                            ? colors.coral
+                            : isPassed
+                            ? colors.coralLight
+                            : isDark
+                            ? colors.cardSubtle
+                            : colors.surfaceSubtle,
+                          borderColor: isCurrent
+                            ? colors.coralDark
+                            : isPassed
+                            ? colors.coral
+                            : colors.border,
+                        },
                       ]}
                     >
-                      <Text style={styles.timelineIcon}>{step.icon}</Text>
+                      <Icon
+                        name={step.icon}
+                        size={14}
+                        color={isCurrent ? '#FFFFFF' : isPassed ? colors.coral : colors.textMuted}
+                      />
                     </View>
                     {index < TIMELINE_STEPS.length - 1 && (
                       <View
                         style={[
                           styles.timelineLine,
-                          isPassed && index < currentStepIndex && styles.timelineLinePassed,
+                          { backgroundColor: colors.border },
+                          isPassed && index < currentStepIndex && { backgroundColor: colors.coral },
                         ]}
                       />
                     )}
@@ -227,14 +285,17 @@ export default function TrackTaskScreen() {
                     <Text
                       style={[
                         styles.timelineLabel,
-                        isCurrent && styles.timelineLabelCurrent,
-                        !isPassed && styles.timelineLabelInactive,
+                        { color: colors.textPrimary },
+                        isCurrent && { color: colors.coral, fontWeight: '900' },
+                        !isPassed && { color: colors.textMuted, fontWeight: '500' },
                       ]}
                     >
                       {step.label}
                     </Text>
                     {isCurrent && (
-                      <Text style={styles.timelineActiveSub}>Current Status</Text>
+                      <Text style={[styles.timelineActiveSub, { color: colors.coral }]}>
+                        Current Status
+                      </Text>
                     )}
                   </View>
                 </View>
@@ -245,18 +306,30 @@ export default function TrackTaskScreen() {
 
         {/* Runner Information Card (if assigned) */}
         {task.runner && (
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>Assigned Runner</Text>
+          <View
+            style={[
+              styles.card,
+              {
+                backgroundColor: isDark ? colors.card : colors.white,
+                borderColor: colors.border,
+              },
+            ]}
+          >
+            <Text style={[styles.cardTitle, { color: colors.textPrimary }]}>
+              Assigned Runner
+            </Text>
 
             <View style={styles.runnerRow}>
-              <View style={styles.runnerAvatar}>
-                <Text style={styles.runnerEmoji}>🛵</Text>
+              <View style={[styles.runnerAvatar, { backgroundColor: colors.coralLight, borderColor: colors.coral }]}>
+                <Icon name="bike" size={26} color={colors.coral} />
               </View>
 
               <View style={styles.runnerDetails}>
-                <Text style={styles.runnerName}>{task.runner.full_name}</Text>
-                <Text style={styles.runnerPlate}>
-                  Bike Plate: <Text style={styles.plateNumber}>{task.runner.bike_plate_number}</Text>
+                <Text style={[styles.runnerName, { color: colors.textPrimary }]}>
+                  {task.runner.full_name}
+                </Text>
+                <Text style={[styles.runnerPlate, { color: colors.textSecondary }]}>
+                  Bike Plate: <Text style={[styles.plateNumber, { color: colors.textPrimary }]}>{task.runner.bike_plate_number}</Text>
                 </Text>
                 <TrustBadge
                   tier={task.runner.trust_tier}
@@ -269,49 +342,80 @@ export default function TrackTaskScreen() {
         )}
 
         {/* Task Details Card */}
-        <View style={styles.card}>
+        <View
+          style={[
+            styles.card,
+            {
+              backgroundColor: isDark ? colors.card : colors.white,
+              borderColor: colors.border,
+            },
+          ]}
+        >
           <View style={styles.cardHeaderRow}>
             <View style={styles.typeBadge}>
-              <Text style={styles.typeEmoji}>{typeInfo.icon}</Text>
-              <Text style={styles.typeTitle}>{typeInfo.title}</Text>
+              <Icon
+                name={task.type === 'SUPERMARKET_RUN' ? 'cart' : 'package'}
+                size={18}
+                color={colors.coral}
+              />
+              <Text style={[styles.typeTitle, { color: colors.textPrimary }]}>
+                {typeInfo.title}
+              </Text>
             </View>
-            <Text style={styles.createdDate}>{formatDate(task.created_at)}</Text>
+            <Text style={[styles.createdDate, { color: colors.textMuted }]}>
+              {formatDate(task.created_at)}
+            </Text>
           </View>
 
-          <Text style={styles.taskDesc}>{task.description}</Text>
+          <Text style={[styles.taskDesc, { color: colors.textSecondary }]}>
+            {task.description}
+          </Text>
 
-          <View style={styles.routeBox}>
+          <View
+            style={[
+              styles.routeBox,
+              { backgroundColor: isDark ? colors.cardSubtle : colors.surfaceSubtle },
+            ]}
+          >
             <View style={styles.addressRow}>
-              <View style={[styles.dot, { backgroundColor: colors.coral }]} />
+              <Icon name="map-pin" size={16} color={colors.coral} />
               <View style={styles.addressTextWrapper}>
-                <Text style={styles.addressTag}>Pickup / Supermarket</Text>
-                <Text style={styles.addressVal}>{task.pickup_address}</Text>
+                <Text style={[styles.addressTag, { color: colors.textMuted }]}>Pickup / Store</Text>
+                <Text style={[styles.addressVal, { color: colors.textPrimary }]}>
+                  {task.pickup_address}
+                </Text>
               </View>
             </View>
 
-            <View style={styles.addressDivider} />
+            <View style={[styles.addressDivider, { backgroundColor: colors.border }]} />
 
             <View style={styles.addressRow}>
-              <View style={[styles.dot, { backgroundColor: colors.charcoal }]} />
+              <Icon name="map-pin" size={16} color={colors.textMuted} />
               <View style={styles.addressTextWrapper}>
-                <Text style={styles.addressTag}>Delivery Address</Text>
-                <Text style={styles.addressVal}>{task.delivery_address}</Text>
+                <Text style={[styles.addressTag, { color: colors.textMuted }]}>Delivery Destination</Text>
+                <Text style={[styles.addressVal, { color: colors.textPrimary }]}>
+                  {task.delivery_address}
+                </Text>
               </View>
             </View>
           </View>
 
-          <View style={styles.priceRow}>
+          <View style={[styles.priceRow, { borderTopColor: colors.border }]}>
             <View>
-              <Text style={styles.priceLabel}>Estimated Goods</Text>
-              <Text style={styles.priceVal}>{formatNaira(task.estimated_goods_cost)}</Text>
+              <Text style={[styles.priceLabel, { color: colors.textMuted }]}>Estimated Goods</Text>
+              <Text style={[styles.priceVal, { color: colors.textPrimary }]}>
+                {formatNaira(task.estimated_goods_cost)}
+              </Text>
             </View>
             <View>
-              <Text style={styles.priceLabel}>Runner Fee</Text>
-              <Text style={styles.priceVal}>{formatNaira(task.service_fee)}</Text>
+              <Text style={[styles.priceLabel, { color: colors.textMuted }]}>Runner Fee</Text>
+              <Text style={[styles.priceVal, { color: colors.textPrimary }]}>
+                {formatNaira(task.service_fee)}
+              </Text>
             </View>
             <View>
-              <Text style={styles.priceLabel}>Total Escrow</Text>
-              <Text style={[styles.priceVal, styles.coralPrice]}>
+              <Text style={[styles.priceLabel, { color: colors.textMuted }]}>Total Escrow</Text>
+              <Text style={[styles.priceVal, { color: colors.coral, fontWeight: '900' }]}>
                 {formatNaira(task.total_amount)}
               </Text>
             </View>
@@ -350,43 +454,50 @@ export default function TrackTaskScreen() {
         animationType="slide"
         onRequestClose={() => setDisputeModalVisible(false)}
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Report an Issue</Text>
-            <Text style={styles.modalDesc}>
-              Please describe the problem. Our support team will pause escrow release and review your case.
-            </Text>
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+          <View style={styles.modalOverlay}>
+            <View
+              style={[
+                styles.modalContent,
+                { backgroundColor: isDark ? colors.card : colors.white },
+              ]}
+            >
+              <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>Report an Issue</Text>
+              <Text style={[styles.modalDesc, { color: colors.textSecondary }]}>
+                Please describe the problem. Our support team will pause escrow release and review your case.
+              </Text>
 
-            <ErrorMessage message={actionError} />
+              <ErrorMessage message={actionError} />
 
-            <Input
-              placeholder="e.g. Runner did not bring items, wrong items bought, etc."
-              value={disputeReason}
-              onChangeText={setDisputeReason}
-              multiline
-              numberOfLines={4}
-              style={{ minHeight: 90, textAlignVertical: 'top' }}
-            />
-
-            <View style={styles.modalBtnRow}>
-              <Button
-                title="Back"
-                onPress={() => setDisputeModalVisible(false)}
-                variant="ghost"
-                size="medium"
-                style={{ flex: 1 }}
+              <Input
+                placeholder="e.g. Runner did not bring items, wrong items bought, etc."
+                value={disputeReason}
+                onChangeText={setDisputeReason}
+                multiline
+                numberOfLines={4}
+                style={{ minHeight: 90, textAlignVertical: 'top' }}
               />
-              <Button
-                title="Submit Dispute"
-                onPress={handleDisputeSubmit}
-                variant="danger"
-                size="medium"
-                loading={actionLoading}
-                style={{ flex: 1.5 }}
-              />
+
+              <View style={styles.modalBtnRow}>
+                <Button
+                  title="Back"
+                  onPress={() => setDisputeModalVisible(false)}
+                  variant="ghost"
+                  size="medium"
+                  style={{ flex: 1 }}
+                />
+                <Button
+                  title="Submit Dispute"
+                  onPress={handleDisputeSubmit}
+                  variant="danger"
+                  size="medium"
+                  loading={actionLoading}
+                  style={{ flex: 1.5 }}
+                />
+              </View>
             </View>
           </View>
-        </View>
+        </TouchableWithoutFeedback>
       </Modal>
     </SafeAreaView>
   );
@@ -395,7 +506,6 @@ export default function TrackTaskScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: colors.background,
   },
   scrollContent: {
     padding: 20,
@@ -409,7 +519,6 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 12,
     fontSize: 14,
-    color: colors.textSecondary,
   },
   statusBanner: {
     borderRadius: 18,
@@ -426,7 +535,6 @@ const styles = StyleSheet.create({
   taskAmount: {
     fontSize: 20,
     fontWeight: '900',
-    color: colors.charcoal,
   },
   statusDescription: {
     fontSize: 13,
@@ -434,54 +542,41 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   actionCard: {
-    backgroundColor: colors.white,
     borderRadius: 18,
     padding: 18,
     marginBottom: 16,
     borderWidth: 2,
-    borderColor: colors.coral,
-    shadowColor: colors.coral,
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.15,
     shadowRadius: 8,
     elevation: 3,
   },
-  deliveredCard: {
-    borderColor: colors.success,
-    backgroundColor: colors.successLight,
-  },
   actionCardTitle: {
     fontSize: 16,
     fontWeight: '800',
-    color: colors.textPrimary,
     marginBottom: 4,
   },
   deliveredTitle: {
     fontSize: 18,
     fontWeight: '900',
-    color: colors.successText,
-    marginBottom: 4,
   },
   actionCardSub: {
     fontSize: 13,
-    color: colors.textSecondary,
     marginBottom: 14,
   },
   actionBtn: {
     marginTop: 4,
   },
   card: {
-    backgroundColor: colors.white,
     borderRadius: 18,
     padding: 18,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: colors.border,
   },
   cardTitle: {
     fontSize: 16,
     fontWeight: '800',
-    color: colors.textPrimary,
     marginBottom: 16,
   },
   timelineContainer: {
@@ -500,33 +595,15 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: colors.surfaceSubtle,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
-    borderColor: colors.border,
-  },
-  timelineDotPassed: {
-    backgroundColor: colors.coralLight,
-    borderColor: colors.coral,
-  },
-  timelineDotCurrent: {
-    backgroundColor: colors.coral,
-    borderColor: colors.coralDark,
-    transform: [{ scale: 1.1 }],
-  },
-  timelineIcon: {
-    fontSize: 12,
   },
   timelineLine: {
     width: 2,
     flex: 1,
     minHeight: 18,
-    backgroundColor: colors.border,
     marginVertical: 2,
-  },
-  timelineLinePassed: {
-    backgroundColor: colors.coral,
   },
   timelineContent: {
     flex: 1,
@@ -536,19 +613,9 @@ const styles = StyleSheet.create({
   timelineLabel: {
     fontSize: 14,
     fontWeight: '700',
-    color: colors.textPrimary,
-  },
-  timelineLabelCurrent: {
-    color: colors.coral,
-    fontWeight: '800',
-  },
-  timelineLabelInactive: {
-    color: colors.textMuted,
-    fontWeight: '500',
   },
   timelineActiveSub: {
     fontSize: 11,
-    color: colors.coral,
     fontWeight: '700',
     marginTop: 2,
   },
@@ -561,14 +628,9 @@ const styles = StyleSheet.create({
     width: 52,
     height: 52,
     borderRadius: 26,
-    backgroundColor: colors.coralLight,
     borderWidth: 2,
-    borderColor: colors.coral,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  runnerEmoji: {
-    fontSize: 26,
   },
   runnerDetails: {
     flex: 1,
@@ -576,17 +638,14 @@ const styles = StyleSheet.create({
   runnerName: {
     fontSize: 16,
     fontWeight: '800',
-    color: colors.textPrimary,
     marginBottom: 2,
   },
   runnerPlate: {
     fontSize: 13,
-    color: colors.textSecondary,
     marginBottom: 6,
   },
   plateNumber: {
     fontWeight: '700',
-    color: colors.charcoal,
   },
   runnerBadge: {
     marginTop: 2,
@@ -600,84 +659,61 @@ const styles = StyleSheet.create({
   typeBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-  },
-  typeEmoji: {
-    fontSize: 16,
+    gap: 8,
   },
   typeTitle: {
     fontSize: 14,
     fontWeight: '800',
-    color: colors.textPrimary,
   },
   createdDate: {
     fontSize: 12,
-    color: colors.textMuted,
   },
   taskDesc: {
     fontSize: 14,
-    color: colors.textSecondary,
     lineHeight: 20,
     marginBottom: 14,
   },
   routeBox: {
-    backgroundColor: colors.surfaceSubtle,
     borderRadius: 12,
     padding: 12,
     marginBottom: 14,
   },
   addressRow: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     gap: 10,
-  },
-  dot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    marginTop: 4,
   },
   addressTextWrapper: {
     flex: 1,
   },
   addressTag: {
     fontSize: 11,
-    color: colors.textMuted,
     fontWeight: '700',
   },
   addressVal: {
     fontSize: 13,
-    color: colors.textPrimary,
     fontWeight: '600',
     marginTop: 1,
   },
   addressDivider: {
     height: 1,
-    backgroundColor: colors.border,
     marginVertical: 8,
-    marginLeft: 18,
+    marginLeft: 26,
   },
   priceRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     borderTopWidth: 1,
-    borderTopColor: colors.border,
     paddingTop: 12,
   },
   priceLabel: {
     fontSize: 11,
-    color: colors.textMuted,
     fontWeight: '600',
   },
   priceVal: {
     fontSize: 14,
     fontWeight: '700',
-    color: colors.textPrimary,
     marginTop: 2,
-  },
-  coralPrice: {
-    color: colors.coral,
-    fontWeight: '800',
   },
   bottomActions: {
     gap: 10,
@@ -686,11 +722,10 @@ const styles = StyleSheet.create({
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: 'rgba(0,0,0,0.6)',
     justifyContent: 'flex-end',
   },
   modalContent: {
-    backgroundColor: colors.white,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     padding: 24,
@@ -698,12 +733,10 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 18,
     fontWeight: '900',
-    color: colors.charcoal,
     marginBottom: 6,
   },
   modalDesc: {
     fontSize: 13,
-    color: colors.textSecondary,
     marginBottom: 16,
     lineHeight: 18,
   },

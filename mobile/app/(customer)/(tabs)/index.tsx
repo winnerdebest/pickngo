@@ -7,21 +7,24 @@ import {
   TouchableOpacity,
   RefreshControl,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useAuth } from '../../src/hooks/useAuth';
-import { colors } from '../../src/constants/colors';
-import { Task } from '../../src/api/types';
-import { getCustomerTasks } from '../../src/api/customers';
-import { formatNaira, formatDate, getTaskTypeInfo } from '../../src/utils/formatters';
-import { StatusBadge } from '../../src/components/StatusBadge';
-import { Button } from '../../src/components/Button';
-import { TaskCard } from '../../src/components/TaskCard';
-import { ErrorMessage } from '../../src/components/ErrorMessage';
+import { useAuth } from '../../../src/hooks/useAuth';
+import { useTheme } from '../../../src/hooks/useTheme';
+import { Task } from '../../../src/api/types';
+import { getCustomerTasks } from '../../../src/api/customers';
+import { formatNaira, getTaskTypeInfo } from '../../../src/utils/formatters';
+import { StatusBadge } from '../../../src/components/StatusBadge';
+import { Button } from '../../../src/components/Button';
+import { TaskCard } from '../../../src/components/TaskCard';
+import { ErrorMessage } from '../../../src/components/ErrorMessage';
+import { Logo } from '../../../src/components/Logo';
+import { Icon } from '../../../src/components/Icon';
 
 export default function CustomerHomeScreen() {
   const router = useRouter();
   const { user } = useAuth();
+  const { colors, isDark, toggleTheme } = useTheme();
 
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
@@ -29,29 +32,36 @@ export default function CustomerHomeScreen() {
   const [error, setError] = useState<string | null>(null);
 
   const loadTasks = useCallback(
-    async (isRefresh = false) => {
+    async (isRefresh = false, isSilent = false) => {
       if (!user) return;
       try {
         if (isRefresh) setRefreshing(true);
-        else setLoading(true);
+        else if (!isSilent) setLoading(true);
         setError(null);
         const data = await getCustomerTasks(user.id);
         setTasks(data);
       } catch (err: any) {
-        setError(err.message || 'Failed to load your tasks');
+        if (!isSilent) {
+          setError(err.message || 'Failed to load your tasks');
+        }
       } finally {
-        setLoading(false);
-        setRefreshing(false);
+        if (!isSilent) setLoading(false);
+        if (isRefresh) setRefreshing(false);
       }
     },
     [user]
   );
 
-  useEffect(() => {
-    loadTasks();
-  }, [loadTasks]);
+  useFocusEffect(
+    useCallback(() => {
+      loadTasks(false, false);
+      const interval = setInterval(() => {
+        loadTasks(false, true);
+      }, 5000);
+      return () => clearInterval(interval);
+    }, [loadTasks])
+  );
 
-  // Find active task (not completed or cancelled)
   const activeTask = tasks.find(
     (t) => t.status !== 'COMPLETED' && t.status !== 'CANCELLED'
   );
@@ -59,7 +69,7 @@ export default function CustomerHomeScreen() {
   const completedCount = tasks.filter((t) => t.status === 'COMPLETED').length;
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={['top']}>
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         refreshControl={
@@ -71,32 +81,51 @@ export default function CustomerHomeScreen() {
           />
         }
       >
-        {/* Top Greeting Bar */}
+        {/* Top Greeting Bar with Logo & Theme Switch */}
         <View style={styles.topBar}>
-          <View>
-            <Text style={styles.greetingSub}>Welcome back,</Text>
-            <Text style={styles.greetingName}>
-              {user?.full_name?.split(' ')[0] || 'Customer'} 👋
-            </Text>
+          <Logo size="small" theme={isDark ? 'dark' : 'light'} variant="combo" style={{ alignItems: 'flex-start' }} />
+          
+          <View style={styles.topRightActions}>
+            <TouchableOpacity
+              activeOpacity={0.7}
+              onPress={toggleTheme}
+              style={[
+                styles.iconBtn,
+                { backgroundColor: isDark ? colors.cardElevated : colors.surfaceSubtle },
+              ]}
+            >
+              <Icon
+                name={isDark ? 'sun' : 'moon'}
+                size={18}
+                color={isDark ? colors.warning : colors.charcoal}
+              />
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              activeOpacity={0.8}
+              onPress={() => router.push('/(customer)/profile')}
+              style={[
+                styles.avatarCircle,
+                { backgroundColor: colors.coralLight, borderColor: colors.coral },
+              ]}
+            >
+              <Icon name="person" size={20} color={colors.coral} />
+            </TouchableOpacity>
           </View>
-          <TouchableOpacity
-            activeOpacity={0.8}
-            onPress={() => router.push('/(customer)/profile')}
-            style={styles.avatarCircle}
-          >
-            <Text style={styles.avatarEmoji}>🛒</Text>
-          </TouchableOpacity>
         </View>
 
         {/* Hero Banner: Post a Task */}
-        <View style={styles.heroCard}>
+        <View style={[styles.heroCard, { backgroundColor: isDark ? colors.card : colors.charcoal }]}>
           <View style={styles.heroContent}>
-            <Text style={styles.heroTitle}>Need something done fast?</Text>
+            <View style={styles.heroHeader}>
+              <Text style={styles.heroTitle}>Need something done fast?</Text>
+              <Icon name="flash" size={22} color={colors.coral} />
+            </View>
             <Text style={styles.heroDesc}>
               Groceries, supermarket runs, food pickup, or parcel deliveries right to your door.
             </Text>
             <Button
-              title="Post a Task Now 🚀"
+              title="Post a Task Now"
               onPress={() => router.push('/(customer)/create-task')}
               variant="primary"
               size="medium"
@@ -112,7 +141,10 @@ export default function CustomerHomeScreen() {
         {activeTask && (
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>⚡ Active Task</Text>
+              <View style={styles.sectionTitleRow}>
+                <Icon name="flash" size={18} color={colors.coral} />
+                <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Active Task</Text>
+              </View>
               <TouchableOpacity
                 onPress={() =>
                   router.push({
@@ -121,7 +153,7 @@ export default function CustomerHomeScreen() {
                   })
                 }
               >
-                <Text style={styles.viewLink}>Track Live →</Text>
+                <Text style={[styles.viewLink, { color: colors.coral }]}>Track Live →</Text>
               </TouchableOpacity>
             </View>
 
@@ -133,30 +165,36 @@ export default function CustomerHomeScreen() {
                   params: { taskId: activeTask.id },
                 })
               }
-              style={styles.activeCard}
+              style={[
+                styles.activeCard,
+                { backgroundColor: isDark ? colors.card : colors.white, borderColor: colors.coral },
+              ]}
             >
               <View style={styles.activeCardHeader}>
                 <View style={styles.activeType}>
-                  <Text style={styles.activeEmoji}>
-                    {getTaskTypeInfo(activeTask.type).icon}
-                  </Text>
-                  <Text style={styles.activeTypeName}>
+                  <Icon
+                    name={activeTask.type === 'SUPERMARKET_RUN' ? 'cart' : 'package'}
+                    size={18}
+                    color={colors.coral}
+                  />
+                  <Text style={[styles.activeTypeName, { color: colors.textPrimary }]}>
                     {getTaskTypeInfo(activeTask.type).title}
                   </Text>
                 </View>
                 <StatusBadge status={activeTask.status} size="small" />
               </View>
 
-              <Text style={styles.activeDesc} numberOfLines={2}>
+              <Text style={[styles.activeDesc, { color: colors.textSecondary }]} numberOfLines={2}>
                 {activeTask.description}
               </Text>
 
-              <View style={styles.activeFooter}>
-                <Text style={styles.activeAmount}>
+              <View style={[styles.activeFooter, { borderTopColor: colors.border }]}>
+                <Text style={[styles.activeAmount, { color: colors.textPrimary }]}>
                   {formatNaira(activeTask.total_amount)}
                 </Text>
-                <View style={styles.trackPill}>
-                  <Text style={styles.trackPillText}>Live Tracker 📍</Text>
+                <View style={[styles.trackPill, { backgroundColor: colors.coral }]}>
+                  <Icon name="map-pin" size={12} color="#FFFFFF" />
+                  <Text style={styles.trackPillText}>Live Tracker</Text>
                 </View>
               </View>
             </TouchableOpacity>
@@ -165,7 +203,7 @@ export default function CustomerHomeScreen() {
 
         {/* Quick Categories */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Quick Errand Services</Text>
+          <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Errand Services</Text>
           <View style={styles.categoriesRow}>
             <TouchableOpacity
               activeOpacity={0.8}
@@ -175,13 +213,21 @@ export default function CustomerHomeScreen() {
                   params: { defaultType: 'SUPERMARKET_RUN' },
                 })
               }
-              style={styles.categoryCard}
+              style={[
+                styles.categoryCard,
+                {
+                  backgroundColor: isDark ? colors.card : colors.white,
+                  borderColor: colors.border,
+                },
+              ]}
             >
-              <View style={styles.categoryIconCircle}>
-                <Text style={styles.categoryIcon}>🛒</Text>
+              <View style={[styles.categoryIconCircle, { backgroundColor: colors.coralLight }]}>
+                <Icon name="cart" size={22} color={colors.coral} />
               </View>
-              <Text style={styles.categoryTitle}>Supermarket</Text>
-              <Text style={styles.categorySub}>Groceries & food items</Text>
+              <Text style={[styles.categoryTitle, { color: colors.textPrimary }]}>Supermarket</Text>
+              <Text style={[styles.categorySub, { color: colors.textSecondary }]}>
+                Groceries & items
+              </Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -192,51 +238,75 @@ export default function CustomerHomeScreen() {
                   params: { defaultType: 'PICKUP' },
                 })
               }
-              style={styles.categoryCard}
+              style={[
+                styles.categoryCard,
+                {
+                  backgroundColor: isDark ? colors.card : colors.white,
+                  borderColor: colors.border,
+                },
+              ]}
             >
-              <View style={styles.categoryIconCircle}>
-                <Text style={styles.categoryIcon}>📦</Text>
+              <View style={[styles.categoryIconCircle, { backgroundColor: colors.coralLight }]}>
+                <Icon name="package" size={22} color={colors.coral} />
               </View>
-              <Text style={styles.categoryTitle}>Pickup & Drop</Text>
-              <Text style={styles.categorySub}>Documents & packages</Text>
+              <Text style={[styles.categoryTitle, { color: colors.textPrimary }]}>Pickup & Drop</Text>
+              <Text style={[styles.categorySub, { color: colors.textSecondary }]}>
+                Parcels & docs
+              </Text>
             </TouchableOpacity>
           </View>
         </View>
 
         {/* Stats Overview */}
-        <View style={styles.statsContainer}>
+        <View
+          style={[
+            styles.statsContainer,
+            {
+              backgroundColor: isDark ? colors.card : colors.white,
+              borderColor: colors.border,
+            },
+          ]}
+        >
           <View style={styles.statBox}>
-            <Text style={styles.statNumber}>{tasks.length}</Text>
-            <Text style={styles.statLabel}>Total Tasks</Text>
+            <Text style={[styles.statNumber, { color: colors.coral }]}>{tasks.length}</Text>
+            <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Total Tasks</Text>
           </View>
-          <View style={styles.statDivider} />
+          <View style={[styles.statDivider, { backgroundColor: colors.border }]} />
           <View style={styles.statBox}>
-            <Text style={styles.statNumber}>{completedCount}</Text>
-            <Text style={styles.statLabel}>Completed</Text>
+            <Text style={[styles.statNumber, { color: colors.successText }]}>{completedCount}</Text>
+            <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Completed</Text>
           </View>
-          <View style={styles.statDivider} />
+          <View style={[styles.statDivider, { backgroundColor: colors.border }]} />
           <View style={styles.statBox}>
-            <Text style={styles.statNumber}>{activeTask ? 1 : 0}</Text>
-            <Text style={styles.statLabel}>In Progress</Text>
+            <Text style={[styles.statNumber, { color: colors.coral }]}>{activeTask ? 1 : 0}</Text>
+            <Text style={[styles.statLabel, { color: colors.textSecondary }]}>In Progress</Text>
           </View>
         </View>
 
         {/* Recent Tasks List */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Recent Requests</Text>
+            <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Recent Requests</Text>
             {tasks.length > 3 && (
               <TouchableOpacity onPress={() => router.push('/(customer)/history')}>
-                <Text style={styles.viewLink}>View All</Text>
+                <Text style={[styles.viewLink, { color: colors.coral }]}>View All</Text>
               </TouchableOpacity>
             )}
           </View>
 
           {tasks.length === 0 && !loading ? (
-            <View style={styles.emptyCard}>
-              <Text style={styles.emptyEmoji}>📝</Text>
-              <Text style={styles.emptyTitle}>No tasks yet</Text>
-              <Text style={styles.emptyDesc}>
+            <View
+              style={[
+                styles.emptyCard,
+                {
+                  backgroundColor: isDark ? colors.card : colors.white,
+                  borderColor: colors.border,
+                },
+              ]}
+            >
+              <Icon name="document" size={32} color={colors.textMuted} />
+              <Text style={[styles.emptyTitle, { color: colors.textPrimary }]}>No tasks yet</Text>
+              <Text style={[styles.emptyDesc, { color: colors.textSecondary }]}>
                 Post your first errand and a runner will be on the way!
               </Text>
             </View>
@@ -263,7 +333,6 @@ export default function CustomerHomeScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: colors.background,
   },
   scrollContent: {
     paddingHorizontal: 20,
@@ -275,53 +344,53 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: 20,
   },
-  greetingSub: {
-    fontSize: 13,
-    color: colors.textSecondary,
-    fontWeight: '500',
+  topRightActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
   },
-  greetingName: {
-    fontSize: 22,
-    fontWeight: '900',
-    color: colors.charcoal,
-    letterSpacing: 0.3,
-  },
-  avatarCircle: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: colors.coralLight,
-    borderWidth: 1.5,
-    borderColor: colors.coral,
+  iconBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  avatarEmoji: {
-    fontSize: 20,
+  avatarCircle: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    borderWidth: 1.5,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   heroCard: {
-    backgroundColor: colors.charcoal,
     borderRadius: 20,
     padding: 22,
     marginBottom: 24,
-    shadowColor: colors.charcoal,
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.18,
+    shadowOpacity: 0.25,
     shadowRadius: 10,
     elevation: 4,
   },
   heroContent: {
     width: '100%',
   },
+  heroHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 6,
+  },
   heroTitle: {
     fontSize: 20,
     fontWeight: '900',
-    color: colors.white,
-    marginBottom: 6,
+    color: '#FFFFFF',
   },
   heroDesc: {
     fontSize: 13,
-    color: colors.textMuted,
+    color: '#A1A1AA',
     lineHeight: 18,
     marginBottom: 16,
   },
@@ -338,25 +407,26 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: 12,
   },
+  sectionTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
   sectionTitle: {
     fontSize: 17,
     fontWeight: '800',
-    color: colors.textPrimary,
   },
   viewLink: {
     fontSize: 13,
     fontWeight: '700',
-    color: colors.coral,
   },
   activeCard: {
-    backgroundColor: colors.white,
-    borderRadius: 16,
+    borderRadius: 18,
     padding: 18,
     borderWidth: 2,
-    borderColor: colors.coral,
-    shadowColor: colors.coral,
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.12,
+    shadowOpacity: 0.15,
     shadowRadius: 8,
     elevation: 3,
   },
@@ -369,19 +439,14 @@ const styles = StyleSheet.create({
   activeType: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-  },
-  activeEmoji: {
-    fontSize: 16,
+    gap: 8,
   },
   activeTypeName: {
     fontSize: 14,
     fontWeight: '800',
-    color: colors.textPrimary,
   },
   activeDesc: {
     fontSize: 14,
-    color: colors.textSecondary,
     lineHeight: 20,
     marginBottom: 14,
   },
@@ -390,22 +455,22 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     borderTopWidth: 1,
-    borderTopColor: colors.border,
     paddingTop: 10,
   },
   activeAmount: {
     fontSize: 18,
     fontWeight: '900',
-    color: colors.charcoal,
   },
   trackPill: {
-    backgroundColor: colors.coral,
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 12,
+    gap: 6,
   },
   trackPillText: {
-    color: colors.white,
+    color: '#FFFFFF',
     fontSize: 12,
     fontWeight: '800',
   },
@@ -415,48 +480,38 @@ const styles = StyleSheet.create({
   },
   categoryCard: {
     flex: 1,
-    backgroundColor: colors.white,
-    borderRadius: 16,
+    borderRadius: 18,
     padding: 16,
     borderWidth: 1,
-    borderColor: colors.border,
-    shadowColor: colors.charcoal,
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
+    shadowOpacity: 0.08,
     shadowRadius: 4,
     elevation: 1,
   },
   categoryIconCircle: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: colors.coralLight,
+    width: 46,
+    height: 46,
+    borderRadius: 23,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 10,
   },
-  categoryIcon: {
-    fontSize: 22,
-  },
   categoryTitle: {
     fontSize: 15,
     fontWeight: '800',
-    color: colors.textPrimary,
     marginBottom: 2,
   },
   categorySub: {
     fontSize: 12,
-    color: colors.textSecondary,
   },
   statsContainer: {
     flexDirection: 'row',
-    backgroundColor: colors.white,
-    borderRadius: 16,
+    borderRadius: 18,
     paddingVertical: 14,
     paddingHorizontal: 8,
     marginBottom: 24,
     borderWidth: 1,
-    borderColor: colors.border,
     alignItems: 'center',
   },
   statBox: {
@@ -466,40 +521,30 @@ const styles = StyleSheet.create({
   statNumber: {
     fontSize: 18,
     fontWeight: '900',
-    color: colors.coral,
   },
   statLabel: {
     fontSize: 11,
     fontWeight: '600',
-    color: colors.textSecondary,
     marginTop: 2,
   },
   statDivider: {
     width: 1,
     height: 24,
-    backgroundColor: colors.border,
   },
   emptyCard: {
-    backgroundColor: colors.white,
-    borderRadius: 16,
+    borderRadius: 18,
     padding: 24,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: colors.border,
-  },
-  emptyEmoji: {
-    fontSize: 32,
-    marginBottom: 8,
   },
   emptyTitle: {
     fontSize: 16,
     fontWeight: '800',
-    color: colors.textPrimary,
+    marginTop: 8,
     marginBottom: 4,
   },
   emptyDesc: {
     fontSize: 13,
-    color: colors.textSecondary,
     textAlign: 'center',
   },
 });

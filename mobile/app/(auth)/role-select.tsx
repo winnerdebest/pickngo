@@ -7,15 +7,18 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  TouchableWithoutFeedback,
+  Keyboard,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../../src/hooks/useAuth';
-import { colors } from '../../src/constants/colors';
+import { useTheme } from '../../src/hooks/useTheme';
 import { UserRole } from '../../src/api/types';
 import { Input } from '../../src/components/Input';
 import { Button } from '../../src/components/Button';
 import { ErrorMessage } from '../../src/components/ErrorMessage';
+import { Icon } from '../../src/components/Icon';
 
 export default function RoleSelectScreen() {
   const router = useRouter();
@@ -27,6 +30,7 @@ export default function RoleSelectScreen() {
   }>();
 
   const { signupCustomerAccount, signupRunnerAccount } = useAuth();
+  const { colors, isDark } = useTheme();
 
   const [selectedRole, setSelectedRole] = useState<UserRole>('customer');
   const [bikePlate, setBikePlate] = useState('');
@@ -74,26 +78,33 @@ export default function RoleSelectScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        style={styles.container}
-      >
-        <ScrollView
-          contentContainerStyle={styles.scrollContent}
-          keyboardShouldPersistTaps="handled"
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          style={styles.container}
         >
+          <ScrollView
+            contentContainerStyle={styles.scrollContent}
+            keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="on-drag"
+          >
           {/* Header */}
           <View style={styles.header}>
             <TouchableOpacity
               activeOpacity={0.7}
               onPress={() => router.back()}
-              style={styles.backBtn}
+              style={[
+                styles.backBtn,
+                { backgroundColor: isDark ? colors.cardElevated : colors.surfaceSubtle },
+              ]}
             >
-              <Text style={styles.backArrow}>←</Text>
+              <Icon name="arrow-left" size={20} color={colors.textPrimary} />
             </TouchableOpacity>
-            <Text style={styles.title}>Choose Your Role</Text>
-            <Text style={styles.subtitle}>How do you plan to use PickNGo?</Text>
+            <Text style={[styles.title, { color: colors.textPrimary }]}>Choose Your Role</Text>
+            <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
+              How do you plan to use PickNGo?
+            </Text>
           </View>
 
           {/* Error Message */}
@@ -107,25 +118,40 @@ export default function RoleSelectScreen() {
               onPress={() => setSelectedRole('customer')}
               style={[
                 styles.roleCard,
-                selectedRole === 'customer' && styles.roleCardActive,
+                {
+                  backgroundColor: isDark ? colors.card : colors.white,
+                  borderColor: selectedRole === 'customer' ? colors.coral : colors.border,
+                },
+                selectedRole === 'customer' && { backgroundColor: isDark ? colors.cardElevated : colors.coralLight },
               ]}
             >
               <View style={styles.cardHeader}>
-                <View style={styles.emojiBubble}>
-                  <Text style={styles.emoji}>🛒</Text>
+                <View
+                  style={[
+                    styles.iconCircle,
+                    { backgroundColor: selectedRole === 'customer' ? colors.coral : (isDark ? colors.cardSubtle : colors.surfaceSubtle) },
+                  ]}
+                >
+                  <Icon
+                    name="cart"
+                    size={24}
+                    color={selectedRole === 'customer' ? '#FFFFFF' : colors.textMuted}
+                  />
                 </View>
                 <View
                   style={[
                     styles.radioCircle,
-                    selectedRole === 'customer' && styles.radioCircleActive,
+                    { borderColor: selectedRole === 'customer' ? colors.coral : colors.borderDark },
                   ]}
                 >
-                  {selectedRole === 'customer' && <View style={styles.radioDot} />}
+                  {selectedRole === 'customer' && (
+                    <View style={[styles.radioDot, { backgroundColor: colors.coral }]} />
+                  )}
                 </View>
               </View>
 
-              <Text style={styles.cardTitle}>I'm a Customer</Text>
-              <Text style={styles.cardDesc}>
+              <Text style={[styles.cardTitle, { color: colors.textPrimary }]}>I'm a Customer</Text>
+              <Text style={[styles.cardDesc, { color: colors.textSecondary }]}>
                 I want to request supermarket runs, errand pickups, and fast local deliveries.
               </Text>
             </TouchableOpacity>
@@ -136,31 +162,45 @@ export default function RoleSelectScreen() {
               onPress={() => setSelectedRole('runner')}
               style={[
                 styles.roleCard,
-                selectedRole === 'runner' && styles.roleCardActive,
+                {
+                  backgroundColor: isDark ? colors.card : colors.white,
+                  borderColor: selectedRole === 'runner' ? colors.coral : colors.border,
+                },
+                selectedRole === 'runner' && { backgroundColor: isDark ? colors.cardElevated : colors.coralLight },
               ]}
             >
               <View style={styles.cardHeader}>
-                <View style={styles.emojiBubble}>
-                  <Text style={styles.emoji}>🛵</Text>
+                <View
+                  style={[
+                    styles.iconCircle,
+                    { backgroundColor: selectedRole === 'runner' ? colors.coral : (isDark ? colors.cardSubtle : colors.surfaceSubtle) },
+                  ]}
+                >
+                  <Icon
+                    name="bike"
+                    size={26}
+                    color={selectedRole === 'runner' ? '#FFFFFF' : colors.textMuted}
+                  />
                 </View>
                 <View
                   style={[
                     styles.radioCircle,
-                    selectedRole === 'runner' && styles.radioCircleActive,
+                    { borderColor: selectedRole === 'runner' ? colors.coral : colors.borderDark },
                   ]}
                 >
-                  {selectedRole === 'runner' && <View style={styles.radioDot} />}
+                  {selectedRole === 'runner' && (
+                    <View style={[styles.radioDot, { backgroundColor: colors.coral }]} />
+                  )}
                 </View>
               </View>
 
-              <Text style={styles.cardTitle}>I'm a Runner</Text>
-              <Text style={styles.cardDesc}>
+              <Text style={[styles.cardTitle, { color: colors.textPrimary }]}>I'm a Runner</Text>
+              <Text style={[styles.cardDesc, { color: colors.textSecondary }]}>
                 I have a bike and want to accept delivery requests, earn money, and build my Trust Tier.
               </Text>
 
-              {/* Extra input for Runner: Bike Plate Number */}
               {selectedRole === 'runner' && (
-                <View style={styles.runnerExtra}>
+                <View style={[styles.runnerExtra, { borderTopColor: colors.border }]}>
                   <Input
                     label="Bike Plate Number"
                     placeholder="e.g. KJA-482-XY"
@@ -171,6 +211,7 @@ export default function RoleSelectScreen() {
                     }}
                     autoCapitalize="characters"
                     containerStyle={styles.plateInput}
+                    prefix={<Icon name="map-pin" size={18} color={colors.textMuted} />}
                   />
                 </View>
               )}
@@ -179,13 +220,14 @@ export default function RoleSelectScreen() {
 
           {/* Complete Button */}
           <Button
-            title={loading ? 'Creating Account...' : 'Get Started 🚀'}
+            title={loading ? 'Creating Account...' : 'Get Started'}
             onPress={handleComplete}
             loading={loading}
             style={styles.submitBtn}
           />
         </ScrollView>
       </KeyboardAvoidingView>
+      </TouchableWithoutFeedback>
     </SafeAreaView>
   );
 }
@@ -193,7 +235,6 @@ export default function RoleSelectScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: colors.background,
   },
   container: {
     flex: 1,
@@ -207,28 +248,19 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   backBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: colors.surfaceSubtle,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 16,
   },
-  backArrow: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: colors.charcoal,
-    marginTop: -2,
-  },
   title: {
     fontSize: 28,
     fontWeight: '900',
-    color: colors.charcoal,
   },
   subtitle: {
     fontSize: 15,
-    color: colors.textSecondary,
     marginTop: 4,
   },
   cardsContainer: {
@@ -236,20 +268,14 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   roleCard: {
-    backgroundColor: colors.white,
-    borderRadius: 18,
+    borderRadius: 20,
     padding: 20,
     borderWidth: 2,
-    borderColor: colors.border,
-    shadowColor: colors.charcoal,
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
+    shadowOpacity: 0.08,
     shadowRadius: 6,
     elevation: 2,
-  },
-  roleCardActive: {
-    borderColor: colors.coral,
-    backgroundColor: colors.coralLight,
   },
   cardHeader: {
     flexDirection: 'row',
@@ -257,51 +283,39 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: 12,
   },
-  emojiBubble: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: colors.surfaceSubtle,
+  iconCircle: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  emoji: {
-    fontSize: 24,
   },
   radioCircle: {
     width: 22,
     height: 22,
     borderRadius: 11,
     borderWidth: 2,
-    borderColor: colors.borderDark,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  radioCircleActive: {
-    borderColor: colors.coral,
   },
   radioDot: {
     width: 12,
     height: 12,
     borderRadius: 6,
-    backgroundColor: colors.coral,
   },
   cardTitle: {
     fontSize: 18,
     fontWeight: '800',
-    color: colors.textPrimary,
     marginBottom: 6,
   },
   cardDesc: {
     fontSize: 13,
-    color: colors.textSecondary,
     lineHeight: 18,
   },
   runnerExtra: {
     marginTop: 16,
     paddingTop: 16,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 111, 89, 0.2)',
   },
   plateInput: {
     marginBottom: 0,

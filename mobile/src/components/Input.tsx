@@ -8,7 +8,8 @@ import {
   TouchableOpacity,
   ViewStyle,
 } from 'react-native';
-import { colors } from '../constants/colors';
+import { useTheme } from '../hooks/useTheme';
+import { Icon } from './Icon';
 
 interface InputProps extends TextInputProps {
   label?: string;
@@ -30,6 +31,7 @@ export const Input: React.FC<InputProps> = ({
   style,
   ...props
 }) => {
+  const { colors, isDark } = useTheme();
   const [isFocused, setIsFocused] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
@@ -37,28 +39,41 @@ export const Input: React.FC<InputProps> = ({
 
   return (
     <View style={[styles.wrapper, containerStyle]}>
-      {label && <Text style={styles.label}>{label}</Text>}
+      {label && (
+        <Text style={[styles.label, { color: colors.textPrimary }]}>{label}</Text>
+      )}
 
       <View
         style={[
           styles.inputContainer,
-          isFocused && styles.inputFocused,
-          error ? styles.inputError : null,
+          {
+            backgroundColor: isDark ? colors.card : colors.white,
+            borderColor: isFocused
+              ? colors.coral
+              : error
+              ? colors.error
+              : colors.border,
+          },
           props.multiline ? styles.multilineContainer : null,
         ]}
       >
         {prefix && (
           <View style={styles.prefixContainer}>
-            {typeof prefix === 'string' ? <Text style={styles.prefixText}>{prefix}</Text> : prefix}
+            {typeof prefix === 'string' ? (
+              <Text style={[styles.prefixText, { color: colors.coral }]}>{prefix}</Text>
+            ) : (
+              prefix
+            )}
           </View>
         )}
 
         <TextInput
-          placeholderTextColor={colors.mediumGray}
+          placeholderTextColor={colors.textMuted}
+          keyboardAppearance={props.keyboardAppearance || (isDark ? 'dark' : 'light')}
           onFocus={() => setIsFocused(true)}
           onBlur={() => setIsFocused(false)}
           secureTextEntry={isPassword && !showPassword}
-          style={[styles.input, style]}
+          style={[styles.input, { color: colors.textPrimary }, style]}
           {...props}
         />
 
@@ -68,7 +83,11 @@ export const Input: React.FC<InputProps> = ({
             onPress={() => setShowPassword(!showPassword)}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
-            <Text style={styles.togglePasswordText}>{showPassword ? 'Hide' : 'Show'}</Text>
+            <Icon
+              name={showPassword ? 'eye-off' : 'eye'}
+              size={20}
+              color={colors.textMuted}
+            />
           </TouchableOpacity>
         )}
 
@@ -76,9 +95,9 @@ export const Input: React.FC<InputProps> = ({
       </View>
 
       {error ? (
-        <Text style={styles.errorText}>{error}</Text>
+        <Text style={[styles.errorText, { color: colors.error }]}>{error}</Text>
       ) : hint ? (
-        <Text style={styles.hintText}>{hint}</Text>
+        <Text style={[styles.hintText, { color: colors.textSecondary }]}>{hint}</Text>
       ) : null}
     </View>
   );
@@ -91,17 +110,14 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 14,
-    fontWeight: '600',
-    color: colors.textPrimary,
+    fontWeight: '700',
     marginBottom: 6,
   },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.white,
     borderWidth: 1.5,
-    borderColor: colors.border,
-    borderRadius: 12,
+    borderRadius: 14,
     paddingHorizontal: 14,
     minHeight: 52,
   },
@@ -109,18 +125,9 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     paddingVertical: 12,
   },
-  inputFocused: {
-    borderColor: colors.coral,
-    backgroundColor: colors.white,
-  },
-  inputError: {
-    borderColor: colors.error,
-    backgroundColor: colors.errorLight,
-  },
   input: {
     flex: 1,
     fontSize: 15,
-    color: colors.textPrimary,
     paddingVertical: 10,
   },
   prefixContainer: {
@@ -128,8 +135,7 @@ const styles = StyleSheet.create({
   },
   prefixText: {
     fontSize: 16,
-    fontWeight: '700',
-    color: colors.coral,
+    fontWeight: '800',
   },
   suffixContainer: {
     marginLeft: 8,
@@ -138,20 +144,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 6,
     paddingVertical: 4,
   },
-  togglePasswordText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: colors.coral,
-  },
   errorText: {
     fontSize: 12,
-    color: colors.error,
     marginTop: 4,
-    fontWeight: '500',
+    fontWeight: '600',
   },
   hintText: {
     fontSize: 12,
-    color: colors.textSecondary,
     marginTop: 4,
   },
 });

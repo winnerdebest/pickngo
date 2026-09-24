@@ -1,19 +1,24 @@
 /**
- * PickNGo Color Palette & Design Tokens
+ * PickNGo Official Brand Color Palette & Design Tokens
+ * Matched directly to official PickNGo branding
  * 
- * Primary: Charcoal Black (#1A1A1A)
- * Accent: Coral (#FF6F59)
+ * Primary: Matte Charcoal Black (#121212)
+ * Accent: Electric Coral / Speed Orange (#FF5733)
  */
 
 export const colors = {
-  // Brand Core
-  charcoal: '#1A1A1A',
-  charcoalLight: '#2D3748',
-  charcoalDark: '#0D0D0D',
-  coral: '#FF6F59',
-  coralDark: '#E0533D',
-  coralLight: '#FFF0EE',
-  coralMuted: 'rgba(255, 111, 89, 0.15)',
+  // Official Brand Core
+  charcoal: '#121212',
+  charcoalLight: '#1E1E1E',
+  charcoalCard: '#18181A',
+  charcoalDark: '#0A0A0A',
+  
+  // Brand Accent (Speed Coral)
+  coral: '#FF5733',
+  coralDark: '#E04826',
+  coralLight: '#FFF0EC',
+  coralMuted: 'rgba(255, 87, 51, 0.15)',
+  coralGlow: 'rgba(255, 87, 51, 0.30)',
 
   // Neutrals & Surfaces
   white: '#FFFFFF',
@@ -21,14 +26,16 @@ export const colors = {
   background: '#F8F9FA',
   cardBackground: '#FFFFFF',
   surfaceSubtle: '#F1F5F9',
+  surfaceDark: '#1E1E22',
   border: '#E2E8F0',
-  borderDark: '#CBD5E1',
+  borderDark: '#2C2C30',
 
   // Typography
-  textPrimary: '#1A1A1A',
+  textPrimary: '#121212',
   textSecondary: '#64748B',
   textMuted: '#94A3B8',
   textLight: '#F8FAFC',
+  textWhite: '#FFFFFF',
 
   // Status & Feedback
   success: '#10B981',

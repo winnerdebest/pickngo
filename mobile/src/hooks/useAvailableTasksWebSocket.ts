@@ -19,22 +19,24 @@ export function useAvailableTasksWebSocket({ runnerId }: UseAvailableTasksOption
   const [error, setError] = useState<string | null>(null);
 
   const fetchTasks = useCallback(
-    async (isManualRefresh = false) => {
+    async (isManualRefresh = false, isSilent = false) => {
       if (!runnerId) return;
       try {
         if (isManualRefresh) {
           setIsRefreshing(true);
-        } else {
+        } else if (!isSilent) {
           setIsLoading(true);
         }
         setError(null);
         const data = await getAvailableTasks(runnerId);
         setTasks(data);
       } catch (err: any) {
-        setError(err.message || 'Failed to fetch available tasks');
+        if (!isSilent) {
+          setError(err.message || 'Failed to fetch available tasks');
+        }
       } finally {
-        setIsLoading(false);
-        setIsRefreshing(false);
+        if (!isSilent) setIsLoading(false);
+        if (isManualRefresh) setIsRefreshing(false);
       }
     },
     [runnerId]
@@ -43,7 +45,7 @@ export function useAvailableTasksWebSocket({ runnerId }: UseAvailableTasksOption
   useEffect(() => {
     if (!runnerId) return;
 
-    fetchTasks();
+    fetchTasks(false, false);
 
     const client = createWebSocketClient(
       '/ws/available-tasks',
@@ -51,13 +53,21 @@ export function useAvailableTasksWebSocket({ runnerId }: UseAvailableTasksOption
         if (message.type === 'new_task_available' && message.task) {
           const newTask = message.task;
           setTasks((prevTasks) => {
-            // Check if already in list
             const exists = prevTasks.some((t) => t.id === newTask.id);
             if (exists) {
               return prevTasks.map((t) => (t.id === newTask.id ? newTask : t));
             }
             return [newTask, ...prevTasks];
           });
+        } else if (message.type === 'task_removed' && message.task_id) {
+          setTasks((prevTasks) => prevTasks.filter((t) => t.id !== message.task_id));
+        } else if (message.type === 'task_update' && message.task) {
+          if (message.task.status !== 'FUNDED') {
+            setTasks((prevTasks) => prevTasks.filter((t) => t.id !== message.task!.id));
+          } else {
+            const updated = message.task;
+            setTasks((prevTasks) => prevTasks.map((t) => (t.id === updated.id ? updated : t)));
+          }
         }
       },
       (connected) => {
@@ -65,7 +75,13 @@ export function useAvailableTasksWebSocket({ runnerId }: UseAvailableTasksOption
       }
     );
 
+    // Periodic heartbeat poll (every 4 seconds) to guarantee feed accuracy
+    const pollInterval = setInterval(() => {
+      fetchTasks(false, true);
+    }, 4000);
+
     return () => {
+      clearInterval(pollInterval);
       client.close();
     };
   }, [runnerId, fetchTasks]);
@@ -77,6 +93,6 @@ export function useAvailableTasksWebSocket({ runnerId }: UseAvailableTasksOption
     isLoading,
     isRefreshing,
     error,
-    refresh: () => fetchTasks(true),
+    refresh: () => fetchTasks(true, false),
   };
 }

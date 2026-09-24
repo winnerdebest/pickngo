@@ -8,17 +8,19 @@ import {
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { colors } from '../../src/constants/colors';
+import { useTheme } from '../../src/hooks/useTheme';
 import { Task } from '../../src/api/types';
 import { getTask, fundTask } from '../../src/api/tasks';
 import { formatNaira, getTaskTypeInfo } from '../../src/utils/formatters';
 import { Header } from '../../src/components/Header';
 import { Button } from '../../src/components/Button';
 import { ErrorMessage } from '../../src/components/ErrorMessage';
+import { Icon } from '../../src/components/Icon';
 
 export default function FundTaskScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ taskId: string }>();
+  const { colors, isDark } = useTheme();
 
   const [task, setTask] = useState<Task | null>(null);
   const [fetching, setFetching] = useState(true);
@@ -46,24 +48,20 @@ export default function FundTaskScreen() {
 
   const handleFund = async () => {
     if (!task) return;
+    const targetTaskId = task.id;
 
     try {
       setFunding(true);
       setError(null);
 
-      // Generate simulated mock payment reference
       const paymentRef = `PAY-PKG-${Date.now().toString(36).toUpperCase()}`;
-
-      // Call backend fund endpoint
-      const updated = await fundTask(task.id, { payment_reference: paymentRef });
-      setTask(updated);
+      await fundTask(targetTaskId, { payment_reference: paymentRef });
       setPaymentSuccess(true);
 
-      // Delay briefly for user feedback then navigate to live tracking
       setTimeout(() => {
         router.replace({
           pathname: '/(customer)/track-task',
-          params: { taskId: updated.id },
+          params: { taskId: targetTaskId },
         });
       }, 1200);
     } catch (err: any) {
@@ -75,11 +73,13 @@ export default function FundTaskScreen() {
 
   if (fetching) {
     return (
-      <SafeAreaView style={styles.safeArea}>
+      <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>
         <Header title="Fund Escrow" showBack />
         <View style={styles.centerContainer}>
           <ActivityIndicator size="large" color={colors.coral} />
-          <Text style={styles.loadingText}>Loading task summary...</Text>
+          <Text style={[styles.loadingText, { color: colors.textSecondary }]}>
+            Loading task summary...
+          </Text>
         </View>
       </SafeAreaView>
     );
@@ -87,7 +87,7 @@ export default function FundTaskScreen() {
 
   if (!task) {
     return (
-      <SafeAreaView style={styles.safeArea}>
+      <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>
         <Header title="Fund Escrow" showBack />
         <View style={styles.centerContainer}>
           <ErrorMessage message={error || 'Task not found'} />
@@ -99,16 +99,20 @@ export default function FundTaskScreen() {
   const typeInfo = getTaskTypeInfo(task.type);
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={['top']}>
       <Header title="Fund Escrow" showBack />
 
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+      <ScrollView contentContainerStyle={styles.scrollContent} keyboardDismissMode="on-drag">
         {/* Success Banner if paid */}
         {paymentSuccess && (
-          <View style={styles.successBanner}>
-            <Text style={styles.successEmoji}>🎉</Text>
-            <Text style={styles.successTitle}>Payment Secured in Escrow!</Text>
-            <Text style={styles.successSubtitle}>Finding nearby runners now...</Text>
+          <View style={[styles.successBanner, { backgroundColor: colors.successLight, borderColor: colors.success }]}>
+            <Icon name="check-circle" size={36} color={colors.success} />
+            <Text style={[styles.successTitle, { color: colors.successText }]}>
+              Payment Secured in Escrow!
+            </Text>
+            <Text style={[styles.successSubtitle, { color: colors.successText }]}>
+              Finding nearby runners now...
+            </Text>
           </View>
         )}
 
@@ -116,55 +120,123 @@ export default function FundTaskScreen() {
         <ErrorMessage message={error} onRetry={() => setError(null)} />
 
         {/* Task Summary Card */}
-        <View style={styles.card}>
+        <View
+          style={[
+            styles.card,
+            {
+              backgroundColor: isDark ? colors.card : colors.white,
+              borderColor: colors.border,
+            },
+          ]}
+        >
           <View style={styles.cardHeader}>
             <View style={styles.typeBadge}>
-              <Text style={styles.typeEmoji}>{typeInfo.icon}</Text>
-              <Text style={styles.typeTitle}>{typeInfo.title}</Text>
+              <Icon
+                name={task.type === 'SUPERMARKET_RUN' ? 'cart' : 'package'}
+                size={20}
+                color={colors.coral}
+              />
+              <Text style={[styles.typeTitle, { color: colors.textPrimary }]}>
+                {typeInfo.title}
+              </Text>
             </View>
-            <Text style={styles.escrowTag}>🔒 Escrow Locked</Text>
+            <View style={[styles.escrowTag, { backgroundColor: colors.coralLight }]}>
+              <Icon name="lock" size={12} color={colors.coral} />
+              <Text style={[styles.escrowTagText, { color: colors.coral }]}>Escrow Locked</Text>
+            </View>
           </View>
 
-          <Text style={styles.description}>{task.description}</Text>
+          <Text style={[styles.description, { color: colors.textSecondary }]}>
+            {task.description}
+          </Text>
 
-          <View style={styles.routeBox}>
-            <Text style={styles.routeLabel}>Route:</Text>
-            <Text style={styles.routeItem}>📍 From: {task.pickup_address}</Text>
-            <Text style={styles.routeItem}>🏁 To: {task.delivery_address}</Text>
+          <View
+            style={[
+              styles.routeBox,
+              { backgroundColor: isDark ? colors.cardSubtle : colors.surfaceSubtle },
+            ]}
+          >
+            <Text style={[styles.routeLabel, { color: colors.textPrimary }]}>Route Plan:</Text>
+            <View style={styles.routeItemRow}>
+              <Icon name="map-pin" size={14} color={colors.coral} />
+              <Text style={[styles.routeItem, { color: colors.textSecondary }]}>
+                From: {task.pickup_address}
+              </Text>
+            </View>
+            <View style={styles.routeItemRow}>
+              <Icon name="map-pin" size={14} color={colors.textMuted} />
+              <Text style={[styles.routeItem, { color: colors.textSecondary }]}>
+                To: {task.delivery_address}
+              </Text>
+            </View>
           </View>
         </View>
 
         {/* Amount Breakdown Card */}
-        <View style={styles.breakdownCard}>
-          <Text style={styles.breakdownTitle}>Escrow Deposit Breakdown</Text>
+        <View
+          style={[
+            styles.breakdownCard,
+            {
+              backgroundColor: isDark ? colors.card : colors.white,
+              borderColor: colors.border,
+            },
+          ]}
+        >
+          <Text style={[styles.breakdownTitle, { color: colors.textPrimary }]}>
+            Escrow Deposit Breakdown
+          </Text>
 
           <View style={styles.row}>
-            <Text style={styles.rowLabel}>Estimated Goods Value</Text>
-            <Text style={styles.rowValue}>{formatNaira(task.estimated_goods_cost)}</Text>
+            <Text style={[styles.rowLabel, { color: colors.textSecondary }]}>
+              Estimated Goods Value
+            </Text>
+            <Text style={[styles.rowValue, { color: colors.textPrimary }]}>
+              {formatNaira(task.estimated_goods_cost)}
+            </Text>
           </View>
 
           <View style={styles.row}>
-            <Text style={styles.rowLabel}>Runner Delivery Fee</Text>
-            <Text style={styles.rowValue}>{formatNaira(task.service_fee)}</Text>
+            <Text style={[styles.rowLabel, { color: colors.textSecondary }]}>
+              Runner Delivery Fee
+            </Text>
+            <Text style={[styles.rowValue, { color: colors.textPrimary }]}>
+              {formatNaira(task.service_fee)}
+            </Text>
           </View>
 
-          <View style={styles.divider} />
+          <View style={[styles.divider, { backgroundColor: colors.border }]} />
 
           <View style={styles.totalRow}>
             <View>
-              <Text style={styles.totalLabel}>Total Escrow Deposit</Text>
-              <Text style={styles.totalHint}>100% Protected</Text>
+              <Text style={[styles.totalLabel, { color: colors.textPrimary }]}>
+                Total Escrow Deposit
+              </Text>
+              <Text style={[styles.totalHint, { color: colors.successText }]}>
+                100% Protected
+              </Text>
             </View>
-            <Text style={styles.totalAmount}>{formatNaira(task.total_amount)}</Text>
+            <Text style={[styles.totalAmount, { color: colors.coral }]}>
+              {formatNaira(task.total_amount)}
+            </Text>
           </View>
         </View>
 
         {/* Trust Guarantee Note */}
-        <View style={styles.trustBox}>
-          <Text style={styles.shieldIcon}>🛡️</Text>
+        <View
+          style={[
+            styles.trustBox,
+            {
+              backgroundColor: isDark ? colors.cardElevated : colors.coralLight,
+              borderColor: colors.border,
+            },
+          ]}
+        >
+          <Icon name="shield" size={26} color={colors.coral} />
           <View style={styles.trustTextWrapper}>
-            <Text style={styles.trustTitle}>PickNGo Escrow Guarantee</Text>
-            <Text style={styles.trustDesc}>
+            <Text style={[styles.trustTitle, { color: colors.textPrimary }]}>
+              PickNGo Escrow Guarantee
+            </Text>
+            <Text style={[styles.trustDesc, { color: colors.textSecondary }]}>
               Your funds remain safe in escrow until you verify your items and confirm completion. If any issue arises, you can dispute and get refunded.
             </Text>
           </View>
@@ -176,8 +248,8 @@ export default function FundTaskScreen() {
             funding
               ? 'Securing Escrow...'
               : paymentSuccess
-              ? 'Funds Locked ✓'
-              : `Pay & Lock ${formatNaira(task.total_amount)} 🔒`
+              ? 'Funds Locked'
+              : `Pay & Lock ${formatNaira(task.total_amount)}`
           }
           onPress={handleFund}
           loading={funding}
@@ -192,7 +264,6 @@ export default function FundTaskScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: colors.background,
   },
   scrollContent: {
     padding: 20,
@@ -206,38 +277,27 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 12,
     fontSize: 14,
-    color: colors.textSecondary,
   },
   successBanner: {
-    backgroundColor: colors.successLight,
-    borderRadius: 16,
+    borderRadius: 18,
     padding: 20,
     alignItems: 'center',
     marginBottom: 20,
     borderWidth: 1.5,
-    borderColor: colors.success,
-  },
-  successEmoji: {
-    fontSize: 32,
-    marginBottom: 6,
+    gap: 8,
   },
   successTitle: {
     fontSize: 18,
     fontWeight: '900',
-    color: colors.successText,
   },
   successSubtitle: {
     fontSize: 13,
-    color: colors.successText,
-    marginTop: 2,
   },
   card: {
-    backgroundColor: colors.white,
     borderRadius: 18,
     padding: 18,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: colors.border,
   },
   cardHeader: {
     flexDirection: 'row',
@@ -248,59 +308,56 @@ const styles = StyleSheet.create({
   typeBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-  },
-  typeEmoji: {
-    fontSize: 18,
+    gap: 8,
   },
   typeTitle: {
     fontSize: 15,
     fontWeight: '800',
-    color: colors.textPrimary,
   },
   escrowTag: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: colors.coral,
-    backgroundColor: colors.coralLight,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 8,
   },
+  escrowTagText: {
+    fontSize: 12,
+    fontWeight: '700',
+  },
   description: {
     fontSize: 14,
-    color: colors.textSecondary,
     lineHeight: 20,
     marginBottom: 12,
   },
   routeBox: {
-    backgroundColor: colors.surfaceSubtle,
     padding: 12,
-    borderRadius: 10,
-    gap: 4,
+    borderRadius: 12,
+    gap: 6,
   },
   routeLabel: {
     fontSize: 12,
     fontWeight: '700',
-    color: colors.textPrimary,
     marginBottom: 2,
+  },
+  routeItemRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
   routeItem: {
     fontSize: 13,
-    color: colors.textSecondary,
   },
   breakdownCard: {
-    backgroundColor: colors.white,
     borderRadius: 18,
     padding: 18,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: colors.border,
   },
   breakdownTitle: {
     fontSize: 16,
     fontWeight: '800',
-    color: colors.textPrimary,
     marginBottom: 14,
   },
   row: {
@@ -311,16 +368,13 @@ const styles = StyleSheet.create({
   },
   rowLabel: {
     fontSize: 14,
-    color: colors.textSecondary,
   },
   rowValue: {
     fontSize: 14,
     fontWeight: '700',
-    color: colors.textPrimary,
   },
   divider: {
     height: 1,
-    backgroundColor: colors.border,
     marginVertical: 12,
   },
   totalRow: {
@@ -331,30 +385,22 @@ const styles = StyleSheet.create({
   totalLabel: {
     fontSize: 16,
     fontWeight: '900',
-    color: colors.charcoal,
   },
   totalHint: {
     fontSize: 11,
-    color: colors.successText,
     fontWeight: '700',
   },
   totalAmount: {
     fontSize: 22,
     fontWeight: '900',
-    color: colors.coral,
   },
   trustBox: {
     flexDirection: 'row',
-    backgroundColor: colors.coralLight,
     padding: 16,
-    borderRadius: 16,
+    borderRadius: 18,
     marginBottom: 24,
-    gap: 12,
+    gap: 14,
     borderWidth: 1,
-    borderColor: 'rgba(255, 111, 89, 0.2)',
-  },
-  shieldIcon: {
-    fontSize: 24,
   },
   trustTextWrapper: {
     flex: 1,
@@ -362,12 +408,10 @@ const styles = StyleSheet.create({
   trustTitle: {
     fontSize: 14,
     fontWeight: '800',
-    color: colors.charcoal,
     marginBottom: 4,
   },
   trustDesc: {
     fontSize: 12,
-    color: colors.textSecondary,
     lineHeight: 18,
   },
   payBtn: {

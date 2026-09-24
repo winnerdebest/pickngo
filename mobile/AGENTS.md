@@ -6,6 +6,8 @@ Cross-platform iOS and Android mobile app for **PickNGo** — Nigerian bike-base
 
 - **Framework**: Expo SDK 57 (React Native 0.86) + TypeScript
 - **Navigation**: Expo Router (file-based routing in `app/`)
+- **Theme & Dark Mode**: `ThemeContext` (`src/context/ThemeContext.tsx`, `src/constants/theme.ts`) with Dark Mode as default matching `#121212` brand matte background, toggleable in Profile settings
+- **Icons**: Professional `@expo/vector-icons` (Ionicons, Feather, MaterialCommunityIcons via `src/components/Icon.tsx`), replacing all emojis
 - **State Management**: React Context (`src/context/AuthContext.tsx`) persisted with `expo-secure-store`
 - **Networking**: Axios (`src/api/client.ts`) with custom error interceptor
 - **Real-Time Updates**: Native WebSockets with auto-reconnection (`src/utils/websocket.ts`, `src/hooks/useTaskWebSocket.ts`, `src/hooks/useAvailableTasksWebSocket.ts`)
@@ -14,10 +16,12 @@ Cross-platform iOS and Android mobile app for **PickNGo** — Nigerian bike-base
 
 ## Brand System & Colors
 
-- **Charcoal Black** (`#1A1A1A`): Primary background, headings, brand identity
-- **Warm Coral** (`#FF6F59`): Primary buttons, active tabs, accents, live indicators
-- **Surfaces**: Clean cards (`#FFFFFF`), borders (`#E2E8F0`), subtle backgrounds (`#F8F9FA`)
+- **Matte Charcoal Black** (`#121212`): Official brand dark tone, background, elevated cards (`#1C1C20`, `#24242A`)
+- **Electric Speed Coral** (`#FF5733`): Official accent tone for delivery bike emblem, wordmark accent (`PickNGo`), buttons, active states, live indicators
+- **Surfaces**: Theme-adaptive dark surfaces (`#1C1C20`), borders (`#2C2C34`), light mode alternatives
 - **Status Colors**: Success Green (`#10B981`), Warning Amber (`#F59E0B`), Error Red (`#EF4444`)
+- **Logo Component**: `src/components/Logo.tsx` rendering official logo assets (`assets/logo.png`)
+- **Vector Icons**: `src/components/Icon.tsx` rendering clean glyphs across tabs, forms, lists, and status indicators
 
 ---
 

@@ -148,7 +148,6 @@ export function getTrustTierMeta(tier: TrustTier = 'BRONZE'): {
   badgeColor: string;
   bgLight: string;
   maxCap: string;
-  icon: string;
 } {
   switch (tier) {
     case 'PLATINUM':
@@ -157,7 +156,6 @@ export function getTrustTierMeta(tier: TrustTier = 'BRONZE'): {
         badgeColor: colors.platinum,
         bgLight: colors.platinumLight,
         maxCap: '₦200,000+',
-        icon: '💎',
       };
     case 'GOLD':
       return {
@@ -165,7 +163,6 @@ export function getTrustTierMeta(tier: TrustTier = 'BRONZE'): {
         badgeColor: colors.gold,
         bgLight: colors.goldLight,
         maxCap: '₦100,000',
-        icon: '🥇',
       };
     case 'SILVER':
       return {
@@ -173,7 +170,6 @@ export function getTrustTierMeta(tier: TrustTier = 'BRONZE'): {
         badgeColor: colors.silver,
         bgLight: colors.silverLight,
         maxCap: '₦50,000',
-        icon: '🥈',
       };
     case 'BRONZE':
     default:
@@ -182,17 +178,16 @@ export function getTrustTierMeta(tier: TrustTier = 'BRONZE'): {
         badgeColor: colors.bronze,
         bgLight: colors.bronzeLight,
         maxCap: '₦20,000',
-        icon: '🥉',
       };
   }
 }
 
 /**
- * Get readable task type title and icon
+ * Get readable task type title
  */
-export function getTaskTypeInfo(type: TaskType): { title: string; icon: string } {
+export function getTaskTypeInfo(type: TaskType): { title: string } {
   if (type === 'SUPERMARKET_RUN') {
-    return { title: 'Supermarket Run', icon: '🛒' };
+    return { title: 'Supermarket Run' };
   }
-  return { title: 'Pickup & Delivery', icon: '📦' };
+  return { title: 'Pickup & Delivery' };
 }

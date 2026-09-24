@@ -7,19 +7,24 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  TouchableWithoutFeedback,
+  Keyboard,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../../src/hooks/useAuth';
-import { colors } from '../../src/constants/colors';
+import { useTheme } from '../../src/hooks/useTheme';
 import { UserRole } from '../../src/api/types';
 import { Input } from '../../src/components/Input';
 import { Button } from '../../src/components/Button';
 import { ErrorMessage } from '../../src/components/ErrorMessage';
+import { Logo } from '../../src/components/Logo';
+import { Icon } from '../../src/components/Icon';
 
 export default function LoginScreen() {
   const router = useRouter();
   const { login } = useAuth();
+  const { colors, isDark, toggleTheme } = useTheme();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -51,43 +56,73 @@ export default function LoginScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        style={styles.container}
-      >
-        <ScrollView
-          contentContainerStyle={styles.scrollContent}
-          keyboardShouldPersistTaps="handled"
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          style={styles.container}
         >
-          {/* Header & Logo */}
+          <ScrollView
+            contentContainerStyle={styles.scrollContent}
+            keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="on-drag"
+          >
+          {/* Top Theme Switch Button */}
+          <View style={styles.topBar}>
+            <TouchableOpacity
+              activeOpacity={0.7}
+              onPress={toggleTheme}
+              style={[
+                styles.themeBtn,
+                { backgroundColor: isDark ? colors.cardElevated : colors.surfaceSubtle },
+              ]}
+            >
+              <Icon
+                name={isDark ? 'sun' : 'moon'}
+                size={18}
+                color={isDark ? colors.warning : colors.charcoal}
+              />
+            </TouchableOpacity>
+          </View>
+
+          {/* Header & Official Logo */}
           <View style={styles.header}>
-            <View style={styles.iconCircle}>
-              <Text style={styles.iconEmoji}>🛵</Text>
-            </View>
-            <Text style={styles.appName}>
-              Pick<Text style={styles.coralText}>N</Text>Go
-            </Text>
-            <Text style={styles.subtitle}>Sign in to your account</Text>
+            <Logo size="large" showTagline theme={isDark ? 'dark' : 'light'} variant="combo" />
           </View>
 
           {/* Role Switcher Pill */}
-          <View style={styles.roleContainer}>
+          <View
+            style={[
+              styles.roleContainer,
+              {
+                backgroundColor: isDark ? colors.card : colors.surfaceSubtle,
+                borderColor: colors.border,
+              },
+            ]}
+          >
             <TouchableOpacity
               activeOpacity={0.8}
               onPress={() => setRole('customer')}
               style={[
                 styles.roleOption,
-                role === 'customer' && styles.roleOptionActive,
+                role === 'customer' && [
+                  styles.roleOptionActive,
+                  { backgroundColor: isDark ? colors.cardElevated : colors.white },
+                ],
               ]}
             >
+              <Icon
+                name="cart"
+                size={18}
+                color={role === 'customer' ? colors.coral : colors.textMuted}
+              />
               <Text
                 style={[
                   styles.roleText,
-                  role === 'customer' && styles.roleTextActive,
+                  { color: role === 'customer' ? colors.coral : colors.textSecondary },
                 ]}
               >
-                🛒 Customer
+                Customer
               </Text>
             </TouchableOpacity>
 
@@ -96,16 +131,24 @@ export default function LoginScreen() {
               onPress={() => setRole('runner')}
               style={[
                 styles.roleOption,
-                role === 'runner' && styles.roleOptionActive,
+                role === 'runner' && [
+                  styles.roleOptionActive,
+                  { backgroundColor: isDark ? colors.cardElevated : colors.white },
+                ],
               ]}
             >
+              <Icon
+                name="bike"
+                size={20}
+                color={role === 'runner' ? colors.coral : colors.textMuted}
+              />
               <Text
                 style={[
                   styles.roleText,
-                  role === 'runner' && styles.roleTextActive,
+                  { color: role === 'runner' ? colors.coral : colors.textSecondary },
                 ]}
               >
-                🛵 Runner
+                Runner
               </Text>
             </TouchableOpacity>
           </View>
@@ -126,6 +169,7 @@ export default function LoginScreen() {
               keyboardType="email-address"
               autoCapitalize="none"
               autoCorrect={false}
+              prefix={<Icon name="mail" size={18} color={colors.textMuted} />}
             />
 
             <Input
@@ -134,6 +178,7 @@ export default function LoginScreen() {
               value={password}
               onChangeText={setPassword}
               secureTextEntry
+              prefix={<Icon name="lock" size={18} color={colors.textMuted} />}
             />
 
             <Button
@@ -146,16 +191,19 @@ export default function LoginScreen() {
 
           {/* Sign Up Link */}
           <View style={styles.footer}>
-            <Text style={styles.footerText}>Don't have an account? </Text>
+            <Text style={[styles.footerText, { color: colors.textSecondary }]}>
+              Don't have an account?{' '}
+            </Text>
             <TouchableOpacity
               activeOpacity={0.7}
               onPress={() => router.push('/(auth)/signup')}
             >
-              <Text style={styles.signupLink}>Sign Up</Text>
+              <Text style={[styles.signupLink, { color: colors.coral }]}>Sign Up</Text>
             </TouchableOpacity>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+      </TouchableWithoutFeedback>
     </SafeAreaView>
   );
 }
@@ -163,7 +211,6 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: colors.background,
   },
   container: {
     flex: 1,
@@ -171,70 +218,50 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     paddingHorizontal: 24,
-    paddingVertical: 32,
+    paddingVertical: 20,
+    justifyContent: 'center',
+  },
+  topBar: {
+    alignItems: 'flex-end',
+    marginBottom: 8,
+  },
+  themeBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: 'center',
     justifyContent: 'center',
   },
   header: {
     alignItems: 'center',
     marginBottom: 28,
   },
-  iconCircle: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: colors.coralLight,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 12,
-  },
-  iconEmoji: {
-    fontSize: 32,
-  },
-  appName: {
-    fontSize: 30,
-    fontWeight: '900',
-    color: colors.charcoal,
-    letterSpacing: 0.5,
-  },
-  coralText: {
-    color: colors.coral,
-  },
-  subtitle: {
-    fontSize: 15,
-    color: colors.textSecondary,
-    marginTop: 6,
-    fontWeight: '500',
-  },
   roleContainer: {
     flexDirection: 'row',
-    backgroundColor: colors.surfaceSubtle,
-    borderRadius: 14,
+    borderRadius: 16,
     padding: 4,
     marginBottom: 24,
-    borderWidth: 1,
-    borderColor: colors.border,
+    borderWidth: 1.5,
   },
   roleOption: {
     flex: 1,
-    paddingVertical: 12,
+    flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: 10,
+    justifyContent: 'center',
+    paddingVertical: 12,
+    borderRadius: 12,
+    gap: 8,
   },
   roleOptionActive: {
-    backgroundColor: colors.white,
-    shadowColor: colors.charcoal,
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.15,
     shadowRadius: 4,
-    elevation: 2,
+    elevation: 3,
   },
   roleText: {
     fontSize: 14,
-    fontWeight: '700',
-    color: colors.textSecondary,
-  },
-  roleTextActive: {
-    color: colors.coral,
+    fontWeight: '800',
   },
   form: {
     width: '100%',
@@ -250,11 +277,9 @@ const styles = StyleSheet.create({
   },
   footerText: {
     fontSize: 14,
-    color: colors.textSecondary,
   },
   signupLink: {
     fontSize: 14,
     fontWeight: '800',
-    color: colors.coral,
   },
 });

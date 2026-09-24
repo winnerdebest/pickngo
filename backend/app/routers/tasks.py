@@ -32,7 +32,7 @@ router = APIRouter(prefix="/tasks", tags=["Tasks"])
 
 
 def _task_to_ws_dict(task: Task) -> dict:
-    """Convert a Task ORM object to a JSON-serializable dict for WebSocket broadcast."""
+    """Convert a Task ORM object to a complete JSON-serializable dict for WebSocket broadcast."""
     return {
         "id": str(task.id),
         "type": task.type.value if task.type else None,
@@ -42,37 +42,43 @@ def _task_to_ws_dict(task: Task) -> dict:
         "description": task.description,
         "pickup_address": task.pickup_address,
         "delivery_address": task.delivery_address,
-        "estimated_goods_cost": str(task.estimated_goods_cost),
-        "service_fee": str(task.service_fee),
-        "total_amount": str(task.total_amount),
+        "estimated_goods_cost": float(task.estimated_goods_cost) if task.estimated_goods_cost is not None else 0.0,
+        "service_fee": float(task.service_fee) if task.service_fee is not None else 0.0,
+        "total_amount": float(task.total_amount) if task.total_amount is not None else 0.0,
         "payment_status": task.payment_status.value if task.payment_status else None,
         "customer_rating": task.customer_rating,
         "customer_review": task.customer_review,
         "dispute_reason": task.dispute_reason,
         "created_at": task.created_at.isoformat() if task.created_at else None,
         "updated_at": task.updated_at.isoformat() if task.updated_at else None,
+        "customer": {
+            "id": str(task.customer.id),
+            "full_name": task.customer.full_name,
+            "phone": task.customer.phone,
+            "email": task.customer.email,
+        } if task.customer else None,
+        "runner": {
+            "id": str(task.runner.id),
+            "full_name": task.runner.full_name,
+            "phone": task.runner.phone,
+            "bike_plate_number": task.runner.bike_plate_number,
+            "trust_tier": task.runner.trust_tier.value if task.runner.trust_tier else "BRONZE",
+            "trust_score": float(task.runner.trust_score) if task.runner.trust_score else 5.0,
+        } if task.runner else None,
     }
 
 
 def _broadcast_task(task: Task):
-    """Fire-and-forget broadcast of task update to WebSocket subscribers."""
+    """Thread-safe broadcast of task update to WebSocket subscribers."""
     task_data = _task_to_ws_dict(task)
     task_id = str(task.id)
-    try:
-        loop = asyncio.get_running_loop()
-        loop.create_task(manager.broadcast_task_update(task_id, task_data))
-    except RuntimeError:
-        pass  # No running event loop (e.g. during tests) — skip broadcast
+    manager.broadcast_task_sync(task_id, task_data)
 
 
 def _broadcast_new_available(task: Task):
-    """Fire-and-forget broadcast to runners that a new task is available."""
+    """Thread-safe broadcast to runners that a new task is available."""
     task_data = _task_to_ws_dict(task)
-    try:
-        loop = asyncio.get_running_loop()
-        loop.create_task(manager.broadcast_new_task_available(task_data))
-    except RuntimeError:
-        pass
+    manager.broadcast_new_available_sync(task_data)
 
 
 @router.post("/", response_model=TaskResponse, status_code=status.HTTP_201_CREATED)
@@ -238,6 +244,8 @@ def accept_task_endpoint(
 
     # Broadcast: task accepted — customer sees runner assigned
     _broadcast_task(task)
+    # Broadcast: task is taken — remove from available feed for other runners
+    manager.broadcast_task_removed_sync(str(task.id))
 
     return task
 
@@ -426,5 +434,6 @@ def cancel_task_endpoint(
 
     # Broadcast: task cancelled
     _broadcast_task(task)
+    manager.broadcast_task_removed_sync(str(task.id))
 
     return task

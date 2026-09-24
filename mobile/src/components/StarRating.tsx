@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ViewStyle } from 'react-native';
-import { colors } from '../constants/colors';
+import { useTheme } from '../hooks/useTheme';
+import { Icon } from './Icon';
 
 interface StarRatingProps {
   rating: number;
@@ -17,7 +18,7 @@ const RATING_LABELS: Record<number, string> = {
   2: 'Fair (2/5)',
   3: 'Good (3/5)',
   4: 'Great (4/5)',
-  5: 'Exceptional (5/5) ⭐',
+  5: 'Exceptional (5/5) ★',
 };
 
 export const StarRating: React.FC<StarRatingProps> = ({
@@ -29,6 +30,7 @@ export const StarRating: React.FC<StarRatingProps> = ({
   showLabel = true,
   style,
 }) => {
+  const { colors } = useTheme();
   const stars = Array.from({ length: maxStars }, (_, i) => i + 1);
 
   const getStarSize = () => {
@@ -36,7 +38,7 @@ export const StarRating: React.FC<StarRatingProps> = ({
       case 'small':
         return 18;
       case 'large':
-        return 36;
+        return 34;
       case 'medium':
       default:
         return 26;
@@ -56,22 +58,20 @@ export const StarRating: React.FC<StarRatingProps> = ({
               onPress={() => onRatingChange && onRatingChange(starNum)}
               style={styles.starTouch}
             >
-              <Text
-                style={[
-                  styles.star,
-                  { fontSize: getStarSize() },
-                  isFilled ? styles.starFilled : styles.starEmpty,
-                ]}
-              >
-                ★
-              </Text>
+              <Icon
+                name={isFilled ? 'star' : 'star-outline'}
+                size={getStarSize()}
+                color={isFilled ? '#F59E0B' : colors.borderDark}
+              />
             </TouchableOpacity>
           );
         })}
       </View>
 
       {showLabel && rating > 0 && (
-        <Text style={styles.labelText}>{RATING_LABELS[rating] || `${rating}/${maxStars}`}</Text>
+        <Text style={[styles.labelText, { color: colors.textPrimary }]}>
+          {RATING_LABELS[rating] || `${rating}/${maxStars}`}
+        </Text>
       )}
     </View>
   );
@@ -85,24 +85,14 @@ const styles = StyleSheet.create({
   starsRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 6,
   },
   starTouch: {
     padding: 4,
-  },
-  star: {
-    fontWeight: '700',
-  },
-  starFilled: {
-    color: '#FFB800',
-  },
-  starEmpty: {
-    color: '#E2E8F0',
   },
   labelText: {
     marginTop: 8,
     fontSize: 14,
     fontWeight: '700',
-    color: colors.textPrimary,
   },
 });

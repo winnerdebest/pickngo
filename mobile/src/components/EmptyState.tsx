@@ -1,10 +1,11 @@
 import React from 'react';
 import { View, Text, StyleSheet, ViewStyle } from 'react-native';
-import { colors } from '../constants/colors';
+import { useTheme } from '../hooks/useTheme';
+import { Icon, IconName } from './Icon';
 import { Button } from './Button';
 
 interface EmptyStateProps {
-  icon?: string;
+  icon?: IconName;
   title: string;
   description: string;
   actionTitle?: string;
@@ -13,20 +14,22 @@ interface EmptyStateProps {
 }
 
 export const EmptyState: React.FC<EmptyStateProps> = ({
-  icon = '📦',
+  icon = 'package',
   title,
   description,
   actionTitle,
   onAction,
   style,
 }) => {
+  const { colors } = useTheme();
+
   return (
     <View style={[styles.container, style]}>
-      <View style={styles.iconCircle}>
-        <Text style={styles.icon}>{icon}</Text>
+      <View style={[styles.iconCircle, { backgroundColor: colors.coralLight }]}>
+        <Icon name={icon} size={36} color={colors.coral} />
       </View>
-      <Text style={styles.title}>{title}</Text>
-      <Text style={styles.description}>{description}</Text>
+      <Text style={[styles.title, { color: colors.textPrimary }]}>{title}</Text>
+      <Text style={[styles.description, { color: colors.textSecondary }]}>{description}</Text>
 
       {actionTitle && onAction && (
         <Button
@@ -49,27 +52,21 @@ const styles = StyleSheet.create({
     marginVertical: 20,
   },
   iconCircle: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    backgroundColor: colors.coralLight,
+    width: 76,
+    height: 76,
+    borderRadius: 38,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 16,
   },
-  icon: {
-    fontSize: 32,
-  },
   title: {
     fontSize: 18,
     fontWeight: '800',
-    color: colors.textPrimary,
     marginBottom: 8,
     textAlign: 'center',
   },
   description: {
     fontSize: 14,
-    color: colors.textSecondary,
     textAlign: 'center',
     lineHeight: 20,
     marginBottom: 20,

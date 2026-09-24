@@ -1,7 +1,8 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ViewStyle } from 'react-native';
 import { useRouter } from 'expo-router';
-import { colors } from '../constants/colors';
+import { useTheme } from '../hooks/useTheme';
+import { Icon } from './Icon';
 
 interface HeaderProps {
   title: string;
@@ -21,6 +22,7 @@ export const Header: React.FC<HeaderProps> = ({
   style,
 }) => {
   const router = useRouter();
+  const { colors, isDark } = useTheme();
 
   const handleBack = () => {
     if (onBack) {
@@ -31,24 +33,36 @@ export const Header: React.FC<HeaderProps> = ({
   };
 
   return (
-    <View style={[styles.header, style]}>
+    <View
+      style={[
+        styles.header,
+        {
+          backgroundColor: isDark ? colors.charcoal : colors.white,
+          borderBottomColor: colors.border,
+        },
+        style,
+      ]}
+    >
       <View style={styles.leftContainer}>
         {showBack && (
           <TouchableOpacity
             activeOpacity={0.7}
             onPress={handleBack}
-            style={styles.backButton}
+            style={[
+              styles.backButton,
+              { backgroundColor: isDark ? colors.cardElevated : colors.surfaceSubtle },
+            ]}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
-            <Text style={styles.backArrow}>←</Text>
+            <Icon name="arrow-left" size={20} color={colors.textPrimary} />
           </TouchableOpacity>
         )}
         <View style={styles.titleContainer}>
-          <Text style={styles.title} numberOfLines={1}>
+          <Text style={[styles.title, { color: colors.textPrimary }]} numberOfLines={1}>
             {title}
           </Text>
           {subtitle && (
-            <Text style={styles.subtitle} numberOfLines={1}>
+            <Text style={[styles.subtitle, { color: colors.textSecondary }]} numberOfLines={1}>
               {subtitle}
             </Text>
           )}
@@ -67,10 +81,8 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 20,
     paddingVertical: 14,
-    backgroundColor: colors.white,
     borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-    minHeight: 56,
+    minHeight: 58,
   },
   leftContainer: {
     flexDirection: 'row',
@@ -79,18 +91,11 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   backButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: colors.surfaceSubtle,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  backArrow: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: colors.charcoal,
-    marginTop: -2,
   },
   titleContainer: {
     flex: 1,
@@ -98,11 +103,9 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 18,
     fontWeight: '800',
-    color: colors.textPrimary,
   },
   subtitle: {
     fontSize: 12,
-    color: colors.textSecondary,
     marginTop: 2,
   },
   rightContainer: {

@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, ViewStyle } from 'react-native';
 import { TrustTier } from '../api/types';
 import { getTrustTierMeta } from '../utils/formatters';
+import { Icon } from './Icon';
 
 interface TrustBadgeProps {
   tier?: TrustTier;
@@ -18,6 +19,18 @@ export const TrustBadge: React.FC<TrustBadgeProps> = ({
 }) => {
   const meta = getTrustTierMeta(tier);
 
+  const getIconSize = () => {
+    switch (size) {
+      case 'small':
+        return 12;
+      case 'large':
+        return 18;
+      case 'medium':
+      default:
+        return 15;
+    }
+  };
+
   return (
     <View
       style={[
@@ -28,7 +41,7 @@ export const TrustBadge: React.FC<TrustBadgeProps> = ({
         style,
       ]}
     >
-      <Text style={styles.icon}>{meta.icon}</Text>
+      <Icon name="shield" size={getIconSize()} color={meta.badgeColor} />
       <Text
         style={[
           styles.text,
@@ -68,9 +81,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 8,
     gap: 8,
-  },
-  icon: {
-    fontSize: 14,
   },
   text: {
     fontSize: 13,

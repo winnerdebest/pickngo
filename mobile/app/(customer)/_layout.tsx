@@ -1,103 +1,21 @@
 import React from 'react';
-import { Tabs } from 'expo-router';
-import { Text, StyleSheet, View } from 'react-native';
-import { colors } from '../../src/constants/colors';
+import { Stack } from 'expo-router';
 
-export default function CustomerTabsLayout() {
+export default function CustomerLayout() {
   return (
-    <Tabs
+    <Stack
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: colors.coral,
-        tabBarInactiveTintColor: colors.textMuted,
-        tabBarStyle: styles.tabBar,
-        tabBarLabelStyle: styles.tabBarLabel,
+        gestureEnabled: true,
+        fullScreenGestureEnabled: true,
+        animation: 'slide_from_right',
       }}
     >
-      <Tabs.Screen
-        name="index"
-        options={{
-          title: 'Home',
-          tabBarIcon: ({ focused }) => (
-            <View style={styles.iconWrapper}>
-              <Text style={[styles.tabEmoji, focused && styles.tabEmojiActive]}>🏠</Text>
-            </View>
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="history"
-        options={{
-          title: 'History',
-          tabBarIcon: ({ focused }) => (
-            <View style={styles.iconWrapper}>
-              <Text style={[styles.tabEmoji, focused && styles.tabEmojiActive]}>📋</Text>
-            </View>
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="profile"
-        options={{
-          title: 'Profile',
-          tabBarIcon: ({ focused }) => (
-            <View style={styles.iconWrapper}>
-              <Text style={[styles.tabEmoji, focused && styles.tabEmojiActive]}>👤</Text>
-            </View>
-          ),
-        }}
-      />
-      {/* Hidden nested stack screens inside customer flow */}
-      <Tabs.Screen
-        name="create-task"
-        options={{
-          href: null,
-        }}
-      />
-      <Tabs.Screen
-        name="fund-task"
-        options={{
-          href: null,
-        }}
-      />
-      <Tabs.Screen
-        name="track-task"
-        options={{
-          href: null,
-        }}
-      />
-      <Tabs.Screen
-        name="confirm-rate"
-        options={{
-          href: null,
-        }}
-      />
-    </Tabs>
+      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+      <Stack.Screen name="create-task" options={{ gestureEnabled: true }} />
+      <Stack.Screen name="fund-task" options={{ gestureEnabled: true }} />
+      <Stack.Screen name="track-task" options={{ gestureEnabled: true }} />
+      <Stack.Screen name="confirm-rate" options={{ gestureEnabled: true }} />
+    </Stack>
   );
 }
-
-const styles = StyleSheet.create({
-  tabBar: {
-    backgroundColor: colors.white,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
-    height: 64,
-    paddingBottom: 10,
-    paddingTop: 8,
-  },
-  tabBarLabel: {
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  iconWrapper: {
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  tabEmoji: {
-    fontSize: 20,
-    opacity: 0.6,
-  },
-  tabEmojiActive: {
-    opacity: 1,
-  },
-});
